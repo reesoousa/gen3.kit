@@ -23,7 +23,9 @@
   <body>
     <div class="app-shell">
       <header class="top-header glass-panel">
-        <label class="game-select-label" for="game-select">Jogo</label>
+        <p class="app-kicker">Pokédex Gen III</p>
+        <h1 class="app-title">Gen3 Kit</h1>
+        <label class="game-select-label" for="game-select">Versão do jogo</label>
         <div class="select-wrapper">
           <select id="game-select" name="game-select" aria-label="Selecionar jogo da terceira geração">
             <option>Emerald</option>
@@ -40,13 +42,15 @@
 
       <main class="content" id="content" aria-live="polite">
         <section class="view is-active" id="view-tipos" data-view="tipos">
-          <h1 class="view-title">Separação de Tipos na 3ª Geração</h1>
-          <p class="view-subtitle">
-            Nesta geração, o tipo do ataque define se o golpe é físico ou especial.
-          </p>
+          <header class="view-header">
+            <h2 class="view-title">Separação de Tipos na 3ª Geração</h2>
+            <p class="view-subtitle">
+              Nesta geração, o tipo do golpe determina se ele é físico ou especial.
+            </p>
+          </header>
 
           <article class="type-card glass-panel">
-            <h2>Ataques Físicos</h2>
+            <h3>Ataques Físicos</h3>
             <ul class="type-list">
               <li>Normal</li>
               <li>Lutador (Fighting)</li>
@@ -61,7 +65,7 @@
           </article>
 
           <article class="type-card glass-panel">
-            <h2>Ataques Especiais</h2>
+            <h3>Ataques Especiais</h3>
             <ul class="type-list">
               <li>Fogo (Fire)</li>
               <li>Água (Water)</li>
@@ -76,16 +80,47 @@
         </section>
 
         <section class="view" id="view-dex" data-view="dex" hidden>
-          <h1 class="view-title">Dex/Encontros</h1>
-          <p class="view-subtitle">Área reservada para a próxima etapa do projeto.</p>
+          <header class="view-header">
+            <h2 class="view-title">Dex e Encontros</h2>
+            <p class="view-subtitle">Cards prontos para sprite, número, nome e contexto de captura.</p>
+          </header>
+
+          <ul class="dex-list">
+            <li class="dex-card glass-panel">
+              <div class="sprite-slot" aria-hidden="true">
+                <img
+                  class="pokemon-sprite"
+                  src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iii/emerald/25.png"
+                  alt=""
+                />
+              </div>
+              <div class="dex-meta">
+                <p class="dex-number">#025</p>
+                <h3 class="dex-name">Pikachu</h3>
+                <p class="dex-note">Exemplo de card com área dedicada para sprite.</p>
+              </div>
+            </li>
+            <li class="dex-card glass-panel">
+              <div class="sprite-slot" aria-hidden="true"></div>
+              <div class="dex-meta">
+                <p class="dex-number">#--- </p>
+                <h3 class="dex-name">Pokémon futuro</h3>
+                <p class="dex-note">Placeholder estável para receber sprite sem quebrar layout.</p>
+              </div>
+            </li>
+          </ul>
         </section>
 
         <section class="view" id="view-evolucoes" data-view="evolucoes" hidden>
-          <h1 class="view-title">Evoluções</h1>
-          <p class="view-subtitle">Área reservada para a próxima etapa do projeto.</p>
+          <header class="view-header">
+            <h2 class="view-title">Evoluções</h2>
+            <p class="view-subtitle">Fluxos e gatilhos de evolução serão exibidos nesta aba.</p>
+          </header>
         </section>
       </main>
+    </div>
 
+    <div class="bottom-nav-wrap">
       <nav class="bottom-nav glass-panel" aria-label="Navegação principal">
         <button class="nav-item is-active" type="button" data-target="tipos" aria-current="page">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -97,7 +132,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 4h12a2 2 0 0 1 2 2v12H4V6a2 2 0 0 1 2-2zm0 6h14" />
           </svg>
-          <span>Dex/Encontros</span>
+          <span>Dex</span>
         </button>
         <button class="nav-item" type="button" data-target="evolucoes">
           <svg viewBox="0 0 24 24" aria-hidden="true">
