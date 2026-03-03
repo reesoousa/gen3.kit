@@ -142,6 +142,10 @@ function formatResourceName(name: string): string {
     .join(' ');
 }
 
+function formatEvolutionItemName(itemName: string): string {
+  return formatResourceName(itemName);
+}
+
 function getCurrentGame(): GameKey {
   const selected = gameSelect?.value as GameKey | undefined;
   if (selected && dexConfigByGame[selected]) return selected;
@@ -311,13 +315,13 @@ async function ensureDexForCurrentGame(): Promise<void> {
 function formatEvolutionMethod(detail: EvolutionDetail): string {
   const trigger = detail.trigger?.name;
 
-  if (trigger === 'item' && detail.item) {
-    return `Usar Item: ${formatResourceName(detail.item.name)}`;
+  if (trigger === 'use-item' && detail.item) {
+    return `Usar Item: ${formatEvolutionItemName(detail.item.name)}`;
   }
 
   if (trigger === 'trade') {
     if (detail.held_item) {
-      return `Troca segurando ${formatResourceName(detail.held_item.name)}`;
+      return `Troca segurando ${formatEvolutionItemName(detail.held_item.name)}`;
     }
     return 'Troca';
   }
