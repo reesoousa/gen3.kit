@@ -417,3 +417,104 @@ body::after {
     width: min(180px, 52%);
   }
 }
+
+.evolution-controls {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  padding: var(--space-md);
+}
+
+.evolution-submit {
+  border: 1px solid color-mix(in srgb, var(--theme-color) 42%, rgba(255, 255, 255, 0.24));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--theme-color) 26%, rgba(12, 21, 37, 0.95));
+  color: #f8fbff;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+}
+
+.evolution-status {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.evolution-chain {
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-md);
+}
+
+.evolution-path {
+  border: 1px solid color-mix(in srgb, var(--theme-color) 36%, rgba(255, 255, 255, 0.18));
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  background: linear-gradient(150deg, rgba(16, 25, 42, 0.7), rgba(13, 21, 36, 0.62));
+  display: grid;
+  gap: 0.6rem;
+}
+
+.evolution-stage-wrap {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.evolution-card {
+  border: 1px solid color-mix(in srgb, var(--theme-color) 28%, rgba(255, 255, 255, 0.14));
+  border-radius: var(--radius-md);
+  padding: 0.7rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+  background: rgba(8, 15, 30, 0.45);
+}
+
+.evolution-card h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.evolution-card.is-selected {
+  border-color: color-mix(in srgb, var(--theme-color) 72%, white 18%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-color) 45%, transparent);
+}
+
+.evolution-method {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.method-arrow {
+  color: var(--theme-color);
+  font-weight: 700;
+}
+
+.evolution-empty-state {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+}
+
+.evolution-empty-state h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.evolution-empty-state p {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 560px) {
+  .evolution-controls {
+    grid-template-columns: 1fr;
+  }
+}

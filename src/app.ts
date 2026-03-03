@@ -16,6 +16,29 @@ type PokemonEntry = {
   types: PokemonType[];
 };
 
+type EvolutionDetail = {
+  trigger: { name: string };
+  min_level: number | null;
+  item: { name: string } | null;
+  held_item: { name: string } | null;
+  min_happiness: number | null;
+};
+
+type EvolutionChainNode = {
+  species: { name: string; url: string };
+  evolves_to: EvolutionChainNode[];
+};
+
+type EvolutionPathStep = {
+  name: string;
+  nationalId: number;
+};
+
+type EvolutionPath = {
+  steps: EvolutionPathStep[];
+  methods: string[];
+};
+
 const navItems = Array.from(document.querySelectorAll<HTMLButtonElement>('.nav-item'));
 const views = Array.from(document.querySelectorAll<HTMLElement>('.view'));
 const gameSelect = document.querySelector<HTMLSelectElement>('#game-select');
@@ -24,6 +47,12 @@ const dexSearchInput = document.querySelector<HTMLInputElement>('#dex-search');
 const dexTypeSelect = document.querySelector<HTMLSelectElement>('#dex-type-filter');
 const dexGrid = document.querySelector<HTMLDivElement>('#dex-grid');
 const dexStatus = document.querySelector<HTMLParagraphElement>('#dex-status');
+
+const evolutionForm = document.querySelector<HTMLFormElement>('#evolution-form');
+const evolutionSearchInput = document.querySelector<HTMLInputElement>('#evolution-search');
+const evolutionSuggestions = document.querySelector<HTMLDataListElement>('#evolution-suggestions');
+const evolutionStatus = document.querySelector<HTMLParagraphElement>('#evolution-status');
+const evolutionChainContainer = document.querySelector<HTMLElement>('#evolution-chain');
 
 const themeMap: Record<GameKey, string> = {
   emerald: '#50C878',
@@ -106,6 +135,13 @@ function formatPokemonName(name: string): string {
     .join(' ');
 }
 
+function formatResourceName(name: string): string {
+  return name
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function getCurrentGame(): GameKey {
   const selected = gameSelect?.value as GameKey | undefined;
   if (selected && dexConfigByGame[selected]) return selected;
@@ -117,9 +153,20 @@ function getSpriteUrl(game: GameKey, nationalId: number): string {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-iii/${folder}/${nationalId}.png`;
 }
 
+function getNationalIdFromUrl(url: string): number {
+  const urlParts = url.split('/').filter(Boolean);
+  return Number(urlParts[urlParts.length - 1]);
+}
+
 function setDexStatus(message: string): void {
   if (dexStatus) {
     dexStatus.textContent = message;
+  }
+}
+
+function setEvolutionStatus(message: string): void {
+  if (evolutionStatus) {
+    evolutionStatus.textContent = message;
   }
 }
 
@@ -153,6 +200,7 @@ async function loadDexForGame(game: GameKey): Promise<void> {
     dexEntries = cachedEntries;
     dexLoadedGame = game;
     renderDexGrid();
+    hydrateEvolutionSuggestions();
     setDexStatus(`Dados carregados em cache: ${cachedEntries.length} Pokémon disponíveis.`);
     return;
   }
@@ -165,8 +213,7 @@ async function loadDexForGame(game: GameKey): Promise<void> {
   const pokedexData = await pokedexResponse.json();
   const entries = (pokedexData.pokemon_entries as Array<{ entry_number: number; pokemon_species: { name: string; url: string } }>)
     .map((entry) => {
-      const urlParts = entry.pokemon_species.url.split('/').filter(Boolean);
-      const nationalId = Number(urlParts[urlParts.length - 1]);
+      const nationalId = getNationalIdFromUrl(entry.pokemon_species.url);
 
       return {
         regionalNumber: entry.entry_number,
@@ -194,6 +241,7 @@ async function loadDexForGame(game: GameKey): Promise<void> {
   dexCache.set(pokedexId, dexEntries);
   dexLoadedGame = game;
   renderDexGrid();
+  hydrateEvolutionSuggestions();
   setDexStatus(`Pokédex carregada com sucesso: ${dexEntries.length} Pokémon disponíveis.`);
 }
 
@@ -240,19 +288,184 @@ function renderDexGrid(): void {
   setDexStatus(`${filtered.length} Pokémon exibidos.`);
 }
 
-async function refreshDexIfNeeded(): Promise<void> {
+function hydrateEvolutionSuggestions(): void {
+  if (!evolutionSuggestions) return;
+
+  evolutionSuggestions.innerHTML = dexEntries
+    .map((entry) => `<option value="${entry.name}">${formatPokemonName(entry.name)}</option>`)
+    .join('');
+}
+
+async function ensureDexForCurrentGame(): Promise<void> {
   const game = getCurrentGame();
 
   if (dexLoadedGame === game && dexEntries.length > 0) {
     renderDexGrid();
+    hydrateEvolutionSuggestions();
+    return;
+  }
+
+  await loadDexForGame(game);
+}
+
+function formatEvolutionMethod(detail: EvolutionDetail): string {
+  const trigger = detail.trigger?.name;
+
+  if (trigger === 'item' && detail.item) {
+    return `Usar Item: ${formatResourceName(detail.item.name)}`;
+  }
+
+  if (trigger === 'trade') {
+    if (detail.held_item) {
+      return `Troca segurando ${formatResourceName(detail.held_item.name)}`;
+    }
+    return 'Troca';
+  }
+
+  if (trigger === 'level-up') {
+    if (detail.min_happiness) {
+      return 'Felicidade Alta';
+    }
+    if (detail.min_level) {
+      return `Nível ${detail.min_level}`;
+    }
+    return 'Subir de nível';
+  }
+
+  return formatResourceName(trigger ?? 'Método desconhecido');
+}
+
+function collectEvolutionPaths(node: EvolutionChainNode, currentPath: EvolutionPath): EvolutionPath[] {
+  const currentStep: EvolutionPathStep = {
+    name: node.species.name,
+    nationalId: getNationalIdFromUrl(node.species.url),
+  };
+
+  const nextPath: EvolutionPath = {
+    steps: [...currentPath.steps, currentStep],
+    methods: [...currentPath.methods],
+  };
+
+  if (!node.evolves_to.length) {
+    return [nextPath];
+  }
+
+  return node.evolves_to.flatMap((branch) => {
+    const branchDetails = (branch as unknown as { evolution_details?: EvolutionDetail[] }).evolution_details ?? [];
+    const methodLabel = branchDetails.length
+      ? Array.from(new Set(branchDetails.map((detail) => formatEvolutionMethod(detail)))).join(' • ')
+      : 'Método não especificado';
+
+    return collectEvolutionPaths(branch, {
+      steps: [...nextPath.steps],
+      methods: [...nextPath.methods, methodLabel],
+    });
+  });
+}
+
+function renderEvolutionChain(paths: EvolutionPath[], selectedPokemonName: string): void {
+  if (!evolutionChainContainer) return;
+
+  const game = getCurrentGame();
+  const hasOnlyOneStage = paths.length === 1 && paths[0].steps.length === 1;
+
+  if (hasOnlyOneStage) {
+    const singlePokemon = paths[0].steps[0];
+    evolutionChainContainer.innerHTML = `
+      <article class="evolution-empty-state">
+        <div class="sprite-slot" aria-hidden="true">
+          <img class="pokemon-sprite" src="${getSpriteUrl(game, singlePokemon.nationalId)}" alt="Sprite de ${formatPokemonName(singlePokemon.name)}" />
+        </div>
+        <h3>${formatPokemonName(singlePokemon.name)}</h3>
+        <p>Este Pokémon não possui evolução.</p>
+      </article>
+    `;
+    setEvolutionStatus('Cadeia analisada com sucesso.');
+    return;
+  }
+
+  evolutionChainContainer.innerHTML = paths
+    .map((path) => {
+      const stageMarkup = path.steps
+        .map((step, index) => {
+          const isSelected = step.name === selectedPokemonName;
+          const method = path.methods[index];
+
+          return `
+            <div class="evolution-stage-wrap">
+              <article class="evolution-card ${isSelected ? 'is-selected' : ''}">
+                <div class="sprite-slot" aria-hidden="true">
+                  <img class="pokemon-sprite" src="${getSpriteUrl(game, step.nationalId)}" alt="Sprite de ${formatPokemonName(step.name)}" loading="lazy" />
+                </div>
+                <h3>${formatPokemonName(step.name)}</h3>
+              </article>
+              ${
+                method
+                  ? `<div class="evolution-method" role="note"><span class="method-arrow" aria-hidden="true">➜</span><span>${method}</span></div>`
+                  : ''
+              }
+            </div>
+          `;
+        })
+        .join('');
+
+      return `<article class="evolution-path">${stageMarkup}</article>`;
+    })
+    .join('');
+
+  setEvolutionStatus(`Cadeia de evolução encontrada: ${paths.length} rota(s) possíveis.`);
+}
+
+async function fetchEvolutionPathsByPokemonName(pokemonName: string): Promise<EvolutionPath[]> {
+  const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonName}/`);
+  if (!speciesResponse.ok) {
+    throw new Error('Não foi possível carregar os dados de espécie desse Pokémon.');
+  }
+
+  const speciesData = await speciesResponse.json();
+  const chainUrl = speciesData.evolution_chain?.url as string | undefined;
+
+  if (!chainUrl) {
+    throw new Error('A espécie não possui dados de evolução disponíveis.');
+  }
+
+  const chainResponse = await fetch(chainUrl);
+  if (!chainResponse.ok) {
+    throw new Error('Não foi possível carregar a cadeia de evolução da PokéAPI.');
+  }
+
+  const chainData = await chainResponse.json();
+  return collectEvolutionPaths(chainData.chain as EvolutionChainNode, { steps: [], methods: [] });
+}
+
+async function handleEvolutionSearchSubmit(event: SubmitEvent): Promise<void> {
+  event.preventDefault();
+
+  if (!evolutionSearchInput) return;
+
+  const normalizedSearch = evolutionSearchInput.value.trim().toLowerCase();
+  if (!normalizedSearch) {
+    setEvolutionStatus('Digite o nome de um Pokémon para pesquisar evoluções.');
+    return;
+  }
+
+  const allowedEntry = dexEntries.find((entry) => entry.name.toLowerCase() === normalizedSearch);
+  if (!allowedEntry) {
+    setEvolutionStatus('Pokémon fora da Pokédex regional atual. Troque de jogo ou pesquise outro nome.');
+    if (evolutionChainContainer) evolutionChainContainer.innerHTML = '';
     return;
   }
 
   try {
-    await loadDexForGame(game);
+    setEvolutionStatus(`Buscando cadeia evolutiva de ${formatPokemonName(allowedEntry.name)}...`);
+    if (evolutionChainContainer) evolutionChainContainer.innerHTML = '';
+
+    const evolutionPaths = await fetchEvolutionPathsByPokemonName(allowedEntry.name);
+    renderEvolutionChain(evolutionPaths, allowedEntry.name);
   } catch (error) {
     console.error(error);
-    setDexStatus('Erro ao carregar dados da Pokédex. Tente novamente.');
+    setEvolutionStatus('Erro ao buscar evolução na PokéAPI. Tente novamente em instantes.');
+    if (evolutionChainContainer) evolutionChainContainer.innerHTML = '';
   }
 }
 
@@ -264,8 +477,18 @@ function bindEvents(): void {
 
       activateView(target);
 
-      if (target === 'dex') {
-        await refreshDexIfNeeded();
+      try {
+        if (target === 'dex' || target === 'evolucoes') {
+          await ensureDexForCurrentGame();
+        }
+      } catch (error) {
+        console.error(error);
+        if (target === 'dex') {
+          setDexStatus('Erro ao carregar dados da Pokédex. Tente novamente.');
+        }
+        if (target === 'evolucoes') {
+          setEvolutionStatus('Erro ao carregar Pokédex da região para a busca de evoluções.');
+        }
       }
     });
   });
@@ -278,14 +501,30 @@ function bindEvents(): void {
     renderDexGrid();
   });
 
+  evolutionForm?.addEventListener('submit', (event) => {
+    void handleEvolutionSearchSubmit(event as SubmitEvent);
+  });
+
   gameSelect?.addEventListener('change', async (event) => {
     const select = event.currentTarget as HTMLSelectElement;
     const game = (select.value as GameKey) || 'emerald';
 
     applyThemeByGame(game);
 
-    if (document.querySelector('#view-dex.active')) {
-      await refreshDexIfNeeded();
+    try {
+      if (document.querySelector('#view-dex.active') || document.querySelector('#view-evolucoes.active')) {
+        await ensureDexForCurrentGame();
+      }
+
+      if (document.querySelector('#view-evolucoes.active')) {
+        setEvolutionStatus('Região atualizada. Pesquise um Pokémon para ver a cadeia de evolução.');
+        if (evolutionChainContainer) evolutionChainContainer.innerHTML = '';
+        if (evolutionSearchInput) evolutionSearchInput.value = '';
+      }
+    } catch (error) {
+      console.error(error);
+      setDexStatus('Erro ao carregar dados da Pokédex. Tente novamente.');
+      setEvolutionStatus('Erro ao atualizar lista de busca de evoluções para o jogo selecionado.');
     }
   });
 }
