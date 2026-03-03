@@ -124,8 +124,30 @@
         <section class="view" id="view-evolucoes" data-view="evolucoes" hidden>
           <header class="view-header">
             <h2 class="view-title">Evoluções</h2>
-            <p class="view-subtitle">Fluxos e gatilhos de evolução serão exibidos nesta aba.</p>
+            <p class="view-subtitle">Busque um Pokémon da Pokédex atual para visualizar a cadeia evolutiva e seus gatilhos.</p>
           </header>
+
+          <form class="evolution-controls glass-panel" id="evolution-form" role="search">
+            <label class="control-field" for="evolution-search">
+              <span>Buscar Pokémon da região atual</span>
+              <input
+                id="evolution-search"
+                type="text"
+                list="evolution-suggestions"
+                placeholder="Ex.: torchic"
+                autocomplete="off"
+                required
+              />
+            </label>
+            <datalist id="evolution-suggestions"></datalist>
+            <button class="evolution-submit" type="submit">Buscar Evolução</button>
+          </form>
+
+          <p class="evolution-status" id="evolution-status" aria-live="polite">
+            Abra esta aba e pesquise um Pokémon para carregar a cadeia de evolução.
+          </p>
+
+          <section class="evolution-chain glass-panel" id="evolution-chain" aria-live="polite"></section>
         </section>
       </main>
     </div>
