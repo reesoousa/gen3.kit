@@ -23,28 +23,19 @@
   <body>
     <div class="app-shell">
       <header class="top-header glass-panel">
-        <div class="header-brand">
-          <img class="brand-logo" src="./assets/logo-gen3-kit.svg" alt="Logo Gen3.Kit" />
-          <div class="brand-copy">
-            <p class="app-kicker">Pokédex Gen III</p>
-            <h1 class="app-title">Gen3 Kit</h1>
-          </div>
-        </div>
+        <img class="brand-logo" src="./assets/logo-gen3-kit.svg" alt="Logo Gen3.Kit" />
 
-        <div class="header-actions">
-          <label class="game-select-label" for="game-select">Seletor de Jogos</label>
-          <div class="select-wrapper">
-            <select id="game-select" name="game-select" aria-label="Selecionar jogo da terceira geração">
-              <option>Emerald</option>
-              <option>Fire Red</option>
-              <option>Leaf Green</option>
-              <option>Ruby</option>
-              <option>Sapphire</option>
-            </select>
-            <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
+        <div class="select-wrapper">
+          <select id="game-select" name="game-select" aria-label="Selecionar jogo da terceira geração">
+            <option value="emerald">Emerald</option>
+            <option value="firered">FireRed</option>
+            <option value="leafgreen">LeafGreen</option>
+            <option value="ruby">Ruby</option>
+            <option value="sapphire">Sapphire</option>
+          </select>
+          <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
         </div>
       </header>
 
