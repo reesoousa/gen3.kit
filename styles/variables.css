@@ -1,12 +1,31 @@
 :root {
-  --color-bg: #070b16;
-  --color-surface: rgba(17, 25, 40, 0.62);
-  --color-surface-strong: rgba(18, 28, 46, 0.82);
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-text-primary: #e8ecf8;
-  --color-text-secondary: #a9b3cd;
-  --color-accent: #8aa5ff;
-  --color-accent-soft: rgba(138, 165, 255, 0.15);
+  --color-bg: #0b0e14;
+  --color-bg-elevated: #101624;
+  --color-surface: rgba(20, 30, 48, 0.62);
+  --color-surface-strong: rgba(24, 35, 57, 0.84);
+  --color-border: rgba(202, 220, 255, 0.14);
+  --color-text-primary: #ecf1ff;
+  --color-text-secondary: #afbddb;
+  --color-accent: #7fa5ff;
+  --color-accent-soft: rgba(127, 165, 255, 0.16);
+
+  --type-normal: #a8a77a;
+  --type-fighting: #c22e28;
+  --type-flying: #a98ff3;
+  --type-poison: #a33ea1;
+  --type-ground: #e2bf65;
+  --type-rock: #b6a136;
+  --type-bug: #a6b91a;
+  --type-ghost: #735797;
+  --type-steel: #b7b7ce;
+  --type-fire: #ee8130;
+  --type-water: #6390f0;
+  --type-grass: #7ac74c;
+  --type-electric: #f7d02c;
+  --type-psychic: #f95587;
+  --type-ice: #96d9d6;
+  --type-dragon: #6f35fc;
+  --type-dark: #705746;
 
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -27,6 +46,5 @@
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.375rem;
 
-  --blur-glass: blur(12px);
   --safe-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
 }

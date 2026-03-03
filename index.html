@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b1020" />
+    <meta name="theme-color" content="#0b0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -23,20 +23,28 @@
   <body>
     <div class="app-shell">
       <header class="top-header glass-panel">
-        <p class="app-kicker">Pokédex Gen III</p>
-        <h1 class="app-title">Gen3 Kit</h1>
-        <label class="game-select-label" for="game-select">Versão do jogo</label>
-        <div class="select-wrapper">
-          <select id="game-select" name="game-select" aria-label="Selecionar jogo da terceira geração">
-            <option>Emerald</option>
-            <option>Fire Red</option>
-            <option>Leaf Green</option>
-            <option>Ruby</option>
-            <option>Sapphire</option>
-          </select>
-          <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+        <div class="header-brand">
+          <img class="brand-logo" src="./assets/logo-gen3-kit.svg" alt="Logo Gen3.Kit" />
+          <div class="brand-copy">
+            <p class="app-kicker">Pokédex Gen III</p>
+            <h1 class="app-title">Gen3 Kit</h1>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <label class="game-select-label" for="game-select">Seletor de Jogos</label>
+          <div class="select-wrapper">
+            <select id="game-select" name="game-select" aria-label="Selecionar jogo da terceira geração">
+              <option>Emerald</option>
+              <option>Fire Red</option>
+              <option>Leaf Green</option>
+              <option>Ruby</option>
+              <option>Sapphire</option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
         </div>
       </header>
 
@@ -49,34 +57,36 @@
             </p>
           </header>
 
-          <article class="type-card glass-panel">
-            <h3>Ataques Físicos</h3>
-            <ul class="type-list">
-              <li>Normal</li>
-              <li>Lutador (Fighting)</li>
-              <li>Voador (Flying)</li>
-              <li>Venenoso (Poison)</li>
-              <li>Terrestre (Ground)</li>
-              <li>Pedra (Rock)</li>
-              <li>Inseto (Bug)</li>
-              <li>Fantasma (Ghost)</li>
-              <li>Aço (Steel)</li>
-            </ul>
-          </article>
+          <div class="types-grid">
+            <article class="type-card glass-panel">
+              <h3>Ataques Físicos</h3>
+              <ul class="type-list">
+                <li data-type="normal">Normal</li>
+                <li data-type="fighting">Lutador (Fighting)</li>
+                <li data-type="flying">Voador (Flying)</li>
+                <li data-type="poison">Venenoso (Poison)</li>
+                <li data-type="ground">Terrestre (Ground)</li>
+                <li data-type="rock">Pedra (Rock)</li>
+                <li data-type="bug">Inseto (Bug)</li>
+                <li data-type="ghost">Fantasma (Ghost)</li>
+                <li data-type="steel">Aço (Steel)</li>
+              </ul>
+            </article>
 
-          <article class="type-card glass-panel">
-            <h3>Ataques Especiais</h3>
-            <ul class="type-list">
-              <li>Fogo (Fire)</li>
-              <li>Água (Water)</li>
-              <li>Planta (Grass)</li>
-              <li>Elétrico (Electric)</li>
-              <li>Psíquico (Psychic)</li>
-              <li>Gelo (Ice)</li>
-              <li>Dragão (Dragon)</li>
-              <li>Sombrio (Dark)</li>
-            </ul>
-          </article>
+            <article class="type-card glass-panel">
+              <h3>Ataques Especiais</h3>
+              <ul class="type-list">
+                <li data-type="fire">Fogo (Fire)</li>
+                <li data-type="water">Água (Water)</li>
+                <li data-type="grass">Planta (Grass)</li>
+                <li data-type="electric">Elétrico (Electric)</li>
+                <li data-type="psychic">Psíquico (Psychic)</li>
+                <li data-type="ice">Gelo (Ice)</li>
+                <li data-type="dragon">Dragão (Dragon)</li>
+                <li data-type="dark">Sombrio (Dark)</li>
+              </ul>
+            </article>
+          </div>
         </section>
 
         <section class="view" id="view-dex" data-view="dex" hidden>
