@@ -83,6 +83,7 @@ body::after {
   top: var(--space-sm);
   z-index: 20;
   padding: var(--space-md) var(--space-lg);
+  padding-top: max(env(safe-area-inset-top), 20px);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -159,10 +160,10 @@ body::after {
 }
 
 .view-title {
-  font-size: 1.52rem;
+  font-size: clamp(1.6rem, 3.6vw, 1.95rem);
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 .view-subtitle {
@@ -186,9 +187,10 @@ body::after {
 }
 
 .type-card h3 {
-  font-size: 1.12rem;
-  font-weight: 700;
+  font-size: 1.48rem;
+  font-weight: 800;
   line-height: 1.2;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -390,9 +392,9 @@ body::after {
 }
 
 .nav-item span {
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  font-weight: 600;
+  font-size: 0.84rem;
+  letter-spacing: -0.01em;
+  font-weight: 700;
 }
 
 .nav-item.active {
