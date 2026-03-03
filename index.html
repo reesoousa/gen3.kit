@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Gen3 Kit" />
+    <meta
+      name="description"
+      content="Utilitário mobile-first da 3ª geração de Pokémon com foco em tipagem, dex e evoluções."
+    />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icons/icon-192.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.svg" />
+    <link rel="stylesheet" href="./styles/variables.css" />
+    <link rel="stylesheet" href="./styles/reset.css" />
+    <link rel="stylesheet" href="./styles/main.css" />
+    <title>Gen3 Kit | Tipos, Dex e Evoluções</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-header glass-panel">
+        <label class="game-select-label" for="game-select">Jogo</label>
+        <div class="select-wrapper">
+          <select id="game-select" name="game-select" aria-label="Selecionar jogo da terceira geração">
+            <option>Emerald</option>
+            <option>Fire Red</option>
+            <option>Leaf Green</option>
+            <option>Ruby</option>
+            <option>Sapphire</option>
+          </select>
+          <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </div>
+      </header>
+
+      <main class="content" id="content" aria-live="polite">
+        <section class="view is-active" id="view-tipos" data-view="tipos">
+          <h1 class="view-title">Separação de Tipos na 3ª Geração</h1>
+          <p class="view-subtitle">
+            Nesta geração, o tipo do ataque define se o golpe é físico ou especial.
+          </p>
+
+          <article class="type-card glass-panel">
+            <h2>Ataques Físicos</h2>
+            <ul class="type-list">
+              <li>Normal</li>
+              <li>Lutador (Fighting)</li>
+              <li>Voador (Flying)</li>
+              <li>Venenoso (Poison)</li>
+              <li>Terrestre (Ground)</li>
+              <li>Pedra (Rock)</li>
+              <li>Inseto (Bug)</li>
+              <li>Fantasma (Ghost)</li>
+              <li>Aço (Steel)</li>
+            </ul>
+          </article>
+
+          <article class="type-card glass-panel">
+            <h2>Ataques Especiais</h2>
+            <ul class="type-list">
+              <li>Fogo (Fire)</li>
+              <li>Água (Water)</li>
+              <li>Planta (Grass)</li>
+              <li>Elétrico (Electric)</li>
+              <li>Psíquico (Psychic)</li>
+              <li>Gelo (Ice)</li>
+              <li>Dragão (Dragon)</li>
+              <li>Sombrio (Dark)</li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="view" id="view-dex" data-view="dex" hidden>
+          <h1 class="view-title">Dex/Encontros</h1>
+          <p class="view-subtitle">Área reservada para a próxima etapa do projeto.</p>
+        </section>
+
+        <section class="view" id="view-evolucoes" data-view="evolucoes" hidden>
+          <h1 class="view-title">Evoluções</h1>
+          <p class="view-subtitle">Área reservada para a próxima etapa do projeto.</p>
+        </section>
+      </main>
+
+      <nav class="bottom-nav glass-panel" aria-label="Navegação principal">
+        <button class="nav-item is-active" type="button" data-target="tipos" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <span>Tipos</span>
+        </button>
+        <button class="nav-item" type="button" data-target="dex">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 4h12a2 2 0 0 1 2 2v12H4V6a2 2 0 0 1 2-2zm0 6h14" />
+          </svg>
+          <span>Dex/Encontros</span>
+        </button>
+        <button class="nav-item" type="button" data-target="evolucoes">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 17l5-10 5 10M9 13h6" />
+          </svg>
+          <span>Evoluções</span>
+        </button>
+      </nav>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
