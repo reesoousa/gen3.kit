@@ -54,6 +54,8 @@ type PokemonMove = {
   }>;
 };
 
+type HMName = 'cut' | 'fly' | 'surf' | 'strength' | 'flash' | 'rock-smash' | 'waterfall' | 'dive';
+
 const navItems = Array.from(document.querySelectorAll<HTMLButtonElement>('.nav-item'));
 const views = Array.from(document.querySelectorAll<HTMLElement>('.view'));
 const gameSelect = document.querySelector<HTMLSelectElement>('#game-select');
@@ -68,7 +70,9 @@ const evolutionSearchInput = document.querySelector<HTMLInputElement>('#evolutio
 const evolutionSuggestions = document.querySelector<HTMLDataListElement>('#evolution-suggestions');
 const evolutionStatus = document.querySelector<HTMLParagraphElement>('#evolution-status');
 const evolutionChainContainer = document.querySelector<HTMLElement>('#evolution-chain');
-
+const hmsToggleList = document.querySelector<HTMLDivElement>('#hms-toggle-list');
+const hmsGrid = document.querySelector<HTMLDivElement>('#hms-grid');
+const hmsStatus = document.querySelector<HTMLParagraphElement>('#hms-status');
 
 const appShell = document.querySelector<HTMLElement>('.app-shell');
 const topHeader = document.querySelector<HTMLElement>('.top-header');
@@ -129,13 +133,35 @@ const typeLabelMap: Record<string, string> = {
   steel: 'Steel',
 };
 
+
+const hmSetByGame: Record<GameKey, HMName[]> = {
+  firered: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall'],
+  leafgreen: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall'],
+  emerald: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall', 'dive'],
+  ruby: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall', 'dive'],
+  sapphire: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall', 'dive'],
+};
+
+const hmLabelMap: Record<HMName, string> = {
+  cut: 'Cut',
+  fly: 'Fly',
+  surf: 'Surf',
+  strength: 'Strength',
+  flash: 'Flash',
+  'rock-smash': 'Rock Smash',
+  waterfall: 'Waterfall',
+  dive: 'Dive',
+};
+
 let dexEntries: PokemonEntry[] = [];
 let dexLoadedGame: GameKey | null = null;
 const dexCache = new Map<number, PokemonEntry[]>();
 let activeDexRequestId = 0;
-let previousViewTarget: 'tipos' | 'dex' | 'evolucoes' = 'tipos';
+let previousViewTarget: 'tipos' | 'dex' | 'evolucoes' | 'hms' = 'tipos';
 let currentDetailNationalId: number | null = null;
 let currentDetailPokemonName = '';
+let selectedHMs = new Set<HMName>();
+const hmLearnsetCache = new Map<string, Set<HMName>>();
 
 function triggerHapticFeedback(duration = 50): void {
   try {
@@ -269,6 +295,104 @@ function setEvolutionStatus(message: string): void {
   if (evolutionStatus) {
     evolutionStatus.textContent = message;
   }
+}
+
+
+function setHMStatus(message: string): void {
+  if (hmsStatus) {
+    hmsStatus.textContent = message;
+  }
+}
+
+function createHMKeyByPokemon(nationalId: number, versionGroup: string): string {
+  return `${nationalId}:${versionGroup}`;
+}
+
+function renderHMToggles(): void {
+  if (!hmsToggleList) return;
+
+  const game = getCurrentGame();
+  const availableHMs = hmSetByGame[game];
+
+  selectedHMs = new Set(Array.from(selectedHMs).filter((hm) => availableHMs.includes(hm)));
+
+  hmsToggleList.innerHTML = availableHMs
+    .map((hm) => {
+      const isActive = selectedHMs.has(hm);
+      return `<button class="hm-pill${isActive ? ' is-active' : ''}" type="button" data-hm="${hm}" aria-pressed="${isActive}">${hmLabelMap[hm]}</button>`;
+    })
+    .join('');
+}
+
+async function pokemonCanLearnSelectedHMs(entry: PokemonEntry, selectedMoves: HMName[], game: GameKey): Promise<boolean> {
+  const versionGroup = getVersionGroupByGame(game);
+  const cacheKey = createHMKeyByPokemon(entry.nationalId, versionGroup);
+  const cachedLearnset = hmLearnsetCache.get(cacheKey);
+
+  if (cachedLearnset) {
+    return selectedMoves.every((move) => cachedLearnset.has(move));
+  }
+
+  const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${entry.nationalId}`);
+  if (!response.ok) {
+    throw new Error(`Falha ao carregar learnset de ${entry.name}.`);
+  }
+
+  const pokemonData = await response.json();
+  const hmLearnset = new Set<HMName>();
+
+  (pokemonData.moves as PokemonMove[]).forEach((moveData) => {
+    const moveName = moveData.move.name as HMName;
+    if (!(moveName in hmLabelMap)) return;
+
+    const hasMachineInCurrentGame = moveData.version_group_details.some(
+      (detail) => detail.version_group.name === versionGroup && detail.move_learn_method.name === 'machine',
+    );
+
+    if (hasMachineInCurrentGame) {
+      hmLearnset.add(moveName);
+    }
+  });
+
+  hmLearnsetCache.set(cacheKey, hmLearnset);
+  return selectedMoves.every((move) => hmLearnset.has(move));
+}
+
+async function renderHMCompatibility(): Promise<void> {
+  if (!hmsGrid) return;
+
+  const game = getCurrentGame();
+  const selectedMoves = Array.from(selectedHMs);
+
+  if (!selectedMoves.length) {
+    hmsGrid.innerHTML = '';
+    setHMStatus('Selecione as máquinas acima para encontrar o Pokémon compatível.');
+    return;
+  }
+
+  if (!dexEntries.length || dexLoadedGame !== game) {
+    await ensureDexForCurrentGame();
+  }
+
+  setHMStatus('Analisando combinações de HMs na região atual...');
+
+  const compatibility = await Promise.all(
+    dexEntries.map(async (entry) => ({
+      entry,
+      compatible: await pokemonCanLearnSelectedHMs(entry, selectedMoves, game),
+    })),
+  );
+
+  const compatibleEntries = compatibility.filter((item) => item.compatible).map((item) => item.entry);
+
+  if (!compatibleEntries.length) {
+    hmsGrid.innerHTML = '';
+    setHMStatus('Nenhum Pokémon nesta região aprende essa combinação exata.');
+    return;
+  }
+
+  hmsGrid.innerHTML = compatibleEntries.map((entry) => createPokemonCard(entry, game)).join('');
+  setHMStatus(`${compatibleEntries.length} Pokémon compatíveis com ${selectedMoves.map((hm) => hmLabelMap[hm]).join(' + ')}.`);
 }
 
 async function fetchPokemonDetail(nationalId: number): Promise<PokemonEntry> {
@@ -826,15 +950,20 @@ function bindEvents(): void {
       const target = item.dataset.target;
       if (!target) return;
 
-      if (target === 'tipos' || target === 'dex' || target === 'evolucoes') {
+      if (target === 'tipos' || target === 'dex' || target === 'evolucoes' || target === 'hms') {
         previousViewTarget = target;
       }
 
       activateView(target);
 
       try {
-        if (target === 'dex' || target === 'evolucoes') {
+        if (target === 'dex' || target === 'evolucoes' || target === 'hms') {
           await ensureDexForCurrentGame();
+        }
+
+        if (target === 'hms') {
+          renderHMToggles();
+          await renderHMCompatibility();
         }
       } catch (error) {
         console.error(error);
@@ -845,6 +974,10 @@ function bindEvents(): void {
         if (target === 'evolucoes') {
           setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
           renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
+        }
+        if (target === 'hms') {
+          setHMStatus('Falha na conexão com a Box. Tente novamente.');
+          renderErrorState(hmsGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-hms');
         }
       }
     });
@@ -889,10 +1022,39 @@ function bindEvents(): void {
         void handleEvolutionSearchSubmit(new SubmitEvent('submit'));
       }
 
+      if (action === 'retry-hms') {
+        void renderHMCompatibility().catch((error) => {
+          console.error(error);
+          setHMStatus('Falha na conexão com a Box. Tente novamente.');
+          renderErrorState(hmsGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-hms');
+        });
+      }
+
       if (action === 'retry-details' && currentDetailNationalId && currentDetailPokemonName) {
         void openPokemonDetails(currentDetailNationalId, currentDetailPokemonName);
       }
 
+      return;
+    }
+
+    const hmButton = target.closest<HTMLButtonElement>('.hm-pill');
+    if (hmButton) {
+      triggerHapticFeedback();
+      const hm = hmButton.dataset.hm as HMName | undefined;
+      if (!hm) return;
+
+      if (selectedHMs.has(hm)) {
+        selectedHMs.delete(hm);
+      } else {
+        selectedHMs.add(hm);
+      }
+
+      renderHMToggles();
+      void renderHMCompatibility().catch((error) => {
+        console.error(error);
+        setHMStatus('Falha na conexão com a Box. Tente novamente.');
+        renderErrorState(hmsGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-hms');
+      });
       return;
     }
 
@@ -912,8 +1074,14 @@ function bindEvents(): void {
     applyThemeByGame(game);
 
     try {
-      if (document.querySelector('#view-dex.active') || document.querySelector('#view-evolucoes.active')) {
+      if (document.querySelector('#view-dex.active') || document.querySelector('#view-evolucoes.active') || document.querySelector('#view-hms.active')) {
         await ensureDexForCurrentGame();
+      }
+
+      renderHMToggles();
+
+      if (document.querySelector('#view-hms.active')) {
+        await renderHMCompatibility();
       }
 
       if (document.querySelector('#view-evolucoes.active')) {
@@ -933,6 +1101,8 @@ function initApp(): void {
   bindEvents();
   activateView('tipos');
   applyThemeByGame(getCurrentGame());
+  renderHMToggles();
 }
+
 
 initApp();

@@ -1,4 +1,3 @@
-"use strict";
 const navItems = Array.from(document.querySelectorAll('.nav-item'));
 const views = Array.from(document.querySelectorAll('.view'));
 const gameSelect = document.querySelector('#game-select');
@@ -11,6 +10,9 @@ const evolutionSearchInput = document.querySelector('#evolution-search');
 const evolutionSuggestions = document.querySelector('#evolution-suggestions');
 const evolutionStatus = document.querySelector('#evolution-status');
 const evolutionChainContainer = document.querySelector('#evolution-chain');
+const hmsToggleList = document.querySelector('#hms-toggle-list');
+const hmsGrid = document.querySelector('#hms-grid');
+const hmsStatus = document.querySelector('#hms-status');
 const appShell = document.querySelector('.app-shell');
 const topHeader = document.querySelector('.top-header');
 const bottomNavWrap = document.querySelector('.bottom-nav-wrap');
@@ -64,6 +66,23 @@ const typeLabelMap = {
     dark: 'Dark',
     steel: 'Steel',
 };
+const hmSetByGame = {
+    firered: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall'],
+    leafgreen: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall'],
+    emerald: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall', 'dive'],
+    ruby: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall', 'dive'],
+    sapphire: ['cut', 'fly', 'surf', 'strength', 'flash', 'rock-smash', 'waterfall', 'dive'],
+};
+const hmLabelMap = {
+    cut: 'Cut',
+    fly: 'Fly',
+    surf: 'Surf',
+    strength: 'Strength',
+    flash: 'Flash',
+    'rock-smash': 'Rock Smash',
+    waterfall: 'Waterfall',
+    dive: 'Dive',
+};
 let dexEntries = [];
 let dexLoadedGame = null;
 const dexCache = new Map();
@@ -71,6 +90,8 @@ let activeDexRequestId = 0;
 let previousViewTarget = 'tipos';
 let currentDetailNationalId = null;
 let currentDetailPokemonName = '';
+let selectedHMs = new Set();
+const hmLearnsetCache = new Map();
 function triggerHapticFeedback(duration = 50) {
     try {
         if ('vibrate' in window.navigator) {
@@ -188,6 +209,79 @@ function setEvolutionStatus(message) {
     if (evolutionStatus) {
         evolutionStatus.textContent = message;
     }
+}
+function setHMStatus(message) {
+    if (hmsStatus) {
+        hmsStatus.textContent = message;
+    }
+}
+function createHMKeyByPokemon(nationalId, versionGroup) {
+    return `${nationalId}:${versionGroup}`;
+}
+function renderHMToggles() {
+    if (!hmsToggleList)
+        return;
+    const game = getCurrentGame();
+    const availableHMs = hmSetByGame[game];
+    selectedHMs = new Set(Array.from(selectedHMs).filter((hm) => availableHMs.includes(hm)));
+    hmsToggleList.innerHTML = availableHMs
+        .map((hm) => {
+        const isActive = selectedHMs.has(hm);
+        return `<button class="hm-pill${isActive ? ' is-active' : ''}" type="button" data-hm="${hm}" aria-pressed="${isActive}">${hmLabelMap[hm]}</button>`;
+    })
+        .join('');
+}
+async function pokemonCanLearnSelectedHMs(entry, selectedMoves, game) {
+    const versionGroup = getVersionGroupByGame(game);
+    const cacheKey = createHMKeyByPokemon(entry.nationalId, versionGroup);
+    const cachedLearnset = hmLearnsetCache.get(cacheKey);
+    if (cachedLearnset) {
+        return selectedMoves.every((move) => cachedLearnset.has(move));
+    }
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${entry.nationalId}`);
+    if (!response.ok) {
+        throw new Error(`Falha ao carregar learnset de ${entry.name}.`);
+    }
+    const pokemonData = await response.json();
+    const hmLearnset = new Set();
+    pokemonData.moves.forEach((moveData) => {
+        const moveName = moveData.move.name;
+        if (!(moveName in hmLabelMap))
+            return;
+        const hasMachineInCurrentGame = moveData.version_group_details.some((detail) => detail.version_group.name === versionGroup && detail.move_learn_method.name === 'machine');
+        if (hasMachineInCurrentGame) {
+            hmLearnset.add(moveName);
+        }
+    });
+    hmLearnsetCache.set(cacheKey, hmLearnset);
+    return selectedMoves.every((move) => hmLearnset.has(move));
+}
+async function renderHMCompatibility() {
+    if (!hmsGrid)
+        return;
+    const game = getCurrentGame();
+    const selectedMoves = Array.from(selectedHMs);
+    if (!selectedMoves.length) {
+        hmsGrid.innerHTML = '';
+        setHMStatus('Selecione as máquinas acima para encontrar o Pokémon compatível.');
+        return;
+    }
+    if (!dexEntries.length || dexLoadedGame !== game) {
+        await ensureDexForCurrentGame();
+    }
+    setHMStatus('Analisando combinações de HMs na região atual...');
+    const compatibility = await Promise.all(dexEntries.map(async (entry) => ({
+        entry,
+        compatible: await pokemonCanLearnSelectedHMs(entry, selectedMoves, game),
+    })));
+    const compatibleEntries = compatibility.filter((item) => item.compatible).map((item) => item.entry);
+    if (!compatibleEntries.length) {
+        hmsGrid.innerHTML = '';
+        setHMStatus('Nenhum Pokémon nesta região aprende essa combinação exata.');
+        return;
+    }
+    hmsGrid.innerHTML = compatibleEntries.map((entry) => createPokemonCard(entry, game)).join('');
+    setHMStatus(`${compatibleEntries.length} Pokémon compatíveis com ${selectedMoves.map((hm) => hmLabelMap[hm]).join(' + ')}.`);
 }
 async function fetchPokemonDetail(nationalId) {
     const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${nationalId}`);
@@ -668,13 +762,17 @@ function bindEvents() {
             const target = item.dataset.target;
             if (!target)
                 return;
-            if (target === 'tipos' || target === 'dex' || target === 'evolucoes') {
+            if (target === 'tipos' || target === 'dex' || target === 'evolucoes' || target === 'hms') {
                 previousViewTarget = target;
             }
             activateView(target);
             try {
-                if (target === 'dex' || target === 'evolucoes') {
+                if (target === 'dex' || target === 'evolucoes' || target === 'hms') {
                     await ensureDexForCurrentGame();
+                }
+                if (target === 'hms') {
+                    renderHMToggles();
+                    await renderHMCompatibility();
                 }
             }
             catch (error) {
@@ -686,6 +784,10 @@ function bindEvents() {
                 if (target === 'evolucoes') {
                     setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
                     renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
+                }
+                if (target === 'hms') {
+                    setHMStatus('Falha na conexão com a Box. Tente novamente.');
+                    renderErrorState(hmsGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-hms');
                 }
             }
         });
@@ -719,9 +821,36 @@ function bindEvents() {
             if (action === 'retry-evolution' && evolutionForm) {
                 void handleEvolutionSearchSubmit(new SubmitEvent('submit'));
             }
+            if (action === 'retry-hms') {
+                void renderHMCompatibility().catch((error) => {
+                    console.error(error);
+                    setHMStatus('Falha na conexão com a Box. Tente novamente.');
+                    renderErrorState(hmsGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-hms');
+                });
+            }
             if (action === 'retry-details' && currentDetailNationalId && currentDetailPokemonName) {
                 void openPokemonDetails(currentDetailNationalId, currentDetailPokemonName);
             }
+            return;
+        }
+        const hmButton = target.closest('.hm-pill');
+        if (hmButton) {
+            triggerHapticFeedback();
+            const hm = hmButton.dataset.hm;
+            if (!hm)
+                return;
+            if (selectedHMs.has(hm)) {
+                selectedHMs.delete(hm);
+            }
+            else {
+                selectedHMs.add(hm);
+            }
+            renderHMToggles();
+            void renderHMCompatibility().catch((error) => {
+                console.error(error);
+                setHMStatus('Falha na conexão com a Box. Tente novamente.');
+                renderErrorState(hmsGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-hms');
+            });
             return;
         }
         const trigger = target.closest('.js-open-details');
@@ -738,8 +867,12 @@ function bindEvents() {
         const game = select.value || 'emerald';
         applyThemeByGame(game);
         try {
-            if (document.querySelector('#view-dex.active') || document.querySelector('#view-evolucoes.active')) {
+            if (document.querySelector('#view-dex.active') || document.querySelector('#view-evolucoes.active') || document.querySelector('#view-hms.active')) {
                 await ensureDexForCurrentGame();
+            }
+            renderHMToggles();
+            if (document.querySelector('#view-hms.active')) {
+                await renderHMCompatibility();
             }
             if (document.querySelector('#view-evolucoes.active')) {
                 setEvolutionStatus('Região atualizada. Pesquise um Pokémon para ver a cadeia de evolução.');
@@ -760,5 +893,6 @@ function initApp() {
     bindEvents();
     activateView('tipos');
     applyThemeByGame(getCurrentGame());
+    renderHMToggles();
 }
 initApp();
