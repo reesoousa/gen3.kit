@@ -69,6 +69,60 @@ let dexLoadedGame = null;
 const dexCache = new Map();
 let activeDexRequestId = 0;
 let previousViewTarget = 'tipos';
+let currentDetailNationalId = null;
+let currentDetailPokemonName = '';
+function triggerHapticFeedback(duration = 50) {
+    try {
+        if ('vibrate' in window.navigator) {
+            window.navigator.vibrate(duration);
+        }
+    }
+    catch (error) {
+        console.debug('Feedback tátil indisponível neste dispositivo.', error);
+    }
+}
+function renderDexSkeleton(cardCount = 12) {
+    if (!dexGrid)
+        return;
+    dexGrid.innerHTML = Array.from({ length: cardCount }, () => `
+    <article class="pokemon-card glass-panel" aria-hidden="true">
+      <p class="dex-number skeleton skeleton-text"></p>
+      <div class="sprite-slot skeleton skeleton-img"></div>
+      <p class="dex-name skeleton skeleton-text"></p>
+      <div class="type-chip-list">
+        <span class="type-chip skeleton skeleton-text"></span>
+        <span class="type-chip skeleton skeleton-text"></span>
+      </div>
+    </article>
+  `).join('');
+}
+function renderEvolutionSkeleton(cardCount = 3) {
+    if (!evolutionChainContainer)
+        return;
+    evolutionChainContainer.innerHTML = Array.from({ length: cardCount }, () => `
+    <article class="evolution-path" aria-hidden="true">
+      <div class="evolution-card">
+        <div class="sprite-slot skeleton skeleton-img"></div>
+        <p class="skeleton skeleton-text"></p>
+      </div>
+      <p class="evolution-method skeleton skeleton-text"></p>
+      <div class="evolution-card">
+        <div class="sprite-slot skeleton skeleton-img"></div>
+        <p class="skeleton skeleton-text"></p>
+      </div>
+    </article>
+  `).join('');
+}
+function renderErrorState(container, message, action) {
+    if (!container)
+        return;
+    container.innerHTML = `
+    <article class="error-state glass-panel">
+      <p>${message}</p>
+      <button class="retry-action" type="button" data-retry-action="${action}">Tentar novamente</button>
+    </article>
+  `;
+}
 function activateView(target) {
     navItems.forEach((item) => {
         const isActive = item.dataset.target === target;
@@ -153,9 +207,8 @@ async function fetchPokemonDetail(nationalId) {
 async function loadDexForGame(game) {
     const requestId = ++activeDexRequestId;
     const { pokedexId } = dexConfigByGame[game];
-    setDexStatus('Carregando Pokédex...');
-    if (dexGrid)
-        dexGrid.innerHTML = '';
+    setDexStatus('Sincronizando dados da Pokédex...');
+    renderDexSkeleton();
     const cachedEntries = dexCache.get(pokedexId);
     if (cachedEntries) {
         dexEntries = cachedEntries;
@@ -375,17 +428,15 @@ async function handleEvolutionSearchSubmit(event) {
         return;
     }
     try {
-        setEvolutionStatus(`Buscando cadeia evolutiva de ${formatPokemonName(allowedEntry.name)}...`);
-        if (evolutionChainContainer)
-            evolutionChainContainer.innerHTML = '';
+        setEvolutionStatus(`Buscando cadeia evolutiva de ${formatPokemonName(allowedEntry.name)}.`);
+        renderEvolutionSkeleton();
         const evolutionPaths = await fetchEvolutionPathsByPokemonName(allowedEntry.name);
         renderEvolutionChain(evolutionPaths, allowedEntry.name);
     }
     catch (error) {
         console.error(error);
-        setEvolutionStatus('Erro ao buscar evolução na PokéAPI. Tente novamente em instantes.');
-        if (evolutionChainContainer)
-            evolutionChainContainer.innerHTML = '';
+        setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
+        renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
     }
 }
 function getVersionGroupByGame(game) {
@@ -403,18 +454,34 @@ function formatDexNumber(id) {
 }
 function setDetailsLoadingState(pokemonName) {
     if (detailsHero) {
-        detailsHero.innerHTML = `<p>Carregando detalhes de ${formatPokemonName(pokemonName)}...</p>`;
+        detailsHero.innerHTML = `
+      <p class="dex-number skeleton skeleton-text"></p>
+      <div class="details-sprite-slot skeleton skeleton-img"></div>
+      <h2 class="details-name skeleton skeleton-text"></h2>
+      <div class="type-chip-list">
+        <span class="type-chip skeleton skeleton-text"></span>
+        <span class="type-chip skeleton skeleton-text"></span>
+      </div>
+    `;
     }
     if (detailsFlavorText)
-        detailsFlavorText.textContent = 'Carregando entrada da Pokédex...';
-    if (detailsStats)
-        detailsStats.innerHTML = '<p>Carregando status base...</p>';
+        detailsFlavorText.innerHTML = '<span class="skeleton skeleton-text"></span>';
+    if (detailsStats) {
+        detailsStats.innerHTML = Array.from({ length: 6 }, () => '<article class="stat-row"><p class="skeleton skeleton-text"></p><div class="stat-track skeleton"></div></article>').join('');
+    }
     if (detailsStrategy)
-        detailsStrategy.textContent = 'Calculando recomendação estratégica...';
+        detailsStrategy.innerHTML = '<span class="skeleton skeleton-text"></span>';
     if (detailsEncounters)
-        detailsEncounters.innerHTML = '<li>Carregando locais de encontro...</li>';
-    if (detailsMoves)
-        detailsMoves.innerHTML = '<p>Carregando learnset...</p>';
+        detailsEncounters.innerHTML = Array.from({ length: 3 }, () => '<li class="skeleton skeleton-text"></li>').join('');
+    if (detailsMoves) {
+        detailsMoves.innerHTML = `
+      <div class="details-moves-table-skeleton">
+        <p class="skeleton skeleton-text"></p>
+        <p class="skeleton skeleton-text"></p>
+        <p class="skeleton skeleton-text"></p>
+      </div>
+    `;
+    }
 }
 function renderDetailsHero(entry) {
     if (!detailsHero)
@@ -512,12 +579,15 @@ async function openPokemonDetails(nationalId, pokemonName) {
         previousViewTarget = currentActiveView;
     }
     activateView('details');
+    triggerHapticFeedback();
     detailsView.hidden = false;
     document.body.classList.add('details-open');
     appShell?.classList.add('details-open');
     topHeader?.setAttribute('hidden', 'true');
     bottomNavWrap?.setAttribute('hidden', 'true');
     setDetailsLoadingState(pokemonName);
+    currentDetailNationalId = nationalId;
+    currentDetailPokemonName = pokemonName;
     try {
         const [pokemonResponse, speciesResponse, encounterResponse] = await Promise.all([
             fetch(`https://pokeapi.co/api/v2/pokemon/${nationalId}`),
@@ -571,18 +641,17 @@ async function openPokemonDetails(nationalId, pokemonName) {
     }
     catch (error) {
         console.error(error);
-        if (detailsHero)
-            detailsHero.innerHTML = `<p>Erro ao carregar detalhes de ${formatPokemonName(pokemonName)}.</p>`;
+        renderErrorState(detailsHero, 'Falha na conexão com a Box. Tente novamente.', 'retry-details');
         if (detailsFlavorText)
-            detailsFlavorText.textContent = 'Não foi possível carregar a entrada da Pokédex.';
+            detailsFlavorText.textContent = 'Falha na conexão com a Box. Tente novamente.';
         if (detailsStats)
-            detailsStats.innerHTML = '<p>Não foi possível carregar os status base.</p>';
+            detailsStats.innerHTML = '';
         if (detailsStrategy)
-            detailsStrategy.textContent = 'Não foi possível calcular a recomendação estratégica.';
+            detailsStrategy.textContent = 'Falha na conexão com a Box. Tente novamente.';
         if (detailsEncounters)
-            detailsEncounters.innerHTML = '<li>Não foi possível carregar os locais de captura.</li>';
+            detailsEncounters.innerHTML = '';
         if (detailsMoves)
-            detailsMoves.innerHTML = '<p>Não foi possível carregar o learnset.</p>';
+            detailsMoves.innerHTML = '';
     }
 }
 function closePokemonDetails() {
@@ -595,6 +664,7 @@ function closePokemonDetails() {
 function bindEvents() {
     navItems.forEach((item) => {
         item.addEventListener('click', async () => {
+            triggerHapticFeedback();
             const target = item.dataset.target;
             if (!target)
                 return;
@@ -610,10 +680,12 @@ function bindEvents() {
             catch (error) {
                 console.error(error);
                 if (target === 'dex') {
-                    setDexStatus('Erro ao carregar dados da Pokédex. Tente novamente.');
+                    setDexStatus('Falha na conexão com a Box. Tente novamente.');
+                    renderErrorState(dexGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-dex');
                 }
                 if (target === 'evolucoes') {
-                    setEvolutionStatus('Erro ao carregar Pokédex da região para a busca de evoluções.');
+                    setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
+                    renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
                 }
             }
         });
@@ -628,10 +700,30 @@ function bindEvents() {
         void handleEvolutionSearchSubmit(event);
     });
     detailsBackButton?.addEventListener('click', () => {
+        triggerHapticFeedback();
         closePokemonDetails();
     });
     document.addEventListener('click', (event) => {
         const target = event.target;
+        const retryButton = target.closest('[data-retry-action]');
+        if (retryButton) {
+            triggerHapticFeedback();
+            const action = retryButton.dataset.retryAction;
+            if (action === 'retry-dex') {
+                void ensureDexForCurrentGame().catch((error) => {
+                    console.error(error);
+                    setDexStatus('Falha na conexão com a Box. Tente novamente.');
+                    renderErrorState(dexGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-dex');
+                });
+            }
+            if (action === 'retry-evolution' && evolutionForm) {
+                void handleEvolutionSearchSubmit(new SubmitEvent('submit'));
+            }
+            if (action === 'retry-details' && currentDetailNationalId && currentDetailPokemonName) {
+                void openPokemonDetails(currentDetailNationalId, currentDetailPokemonName);
+            }
+            return;
+        }
         const trigger = target.closest('.js-open-details');
         if (!trigger)
             return;

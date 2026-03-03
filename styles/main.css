@@ -78,6 +78,39 @@ body::after {
   transition: border-color 0.5s ease, background-color 0.5s ease, color 0.5s ease;
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -220% 0;
+  }
+  100% {
+    background-position: 220% 0;
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-color: transparent;
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.05) 8%,
+    rgba(255, 255, 255, 0.14) 18%,
+    rgba(255, 255, 255, 0.05) 33%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.35s linear infinite;
+}
+
+.skeleton-text {
+  min-height: 0.82rem;
+  width: 100%;
+  border-radius: 999px;
+}
+
+.skeleton-img {
+  border-radius: 50%;
+}
+
 .top-header {
   position: sticky;
   top: var(--space-sm);
@@ -278,6 +311,9 @@ body::after {
   justify-items: center;
   gap: var(--space-sm);
   text-align: center;
+  min-width: 44px;
+  min-height: 44px;
+  transition: transform 0.1s ease, opacity 0.12s ease;
 }
 
 .sprite-slot {
@@ -371,6 +407,8 @@ body::after {
 }
 
 .nav-item {
+  min-width: 44px;
+  min-height: 44px;
   min-height: 3.6rem;
   border-radius: 22px;
   display: grid;
@@ -379,7 +417,7 @@ body::after {
   gap: 0.25rem;
   color: rgba(232, 236, 248, 0.62);
   text-align: center;
-  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+  transition: transform 0.1s ease, background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
   border: 1px solid transparent;
 }
 
@@ -427,12 +465,15 @@ body::after {
 }
 
 .evolution-submit {
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid color-mix(in srgb, var(--theme-color) 42%, rgba(255, 255, 255, 0.24));
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--theme-color) 26%, rgba(12, 21, 37, 0.95));
   color: #f8fbff;
   font-weight: 700;
   padding: 0.7rem 1rem;
+  transition: transform 0.1s ease, opacity 0.12s ease;
 }
 
 .evolution-status {
@@ -469,6 +510,9 @@ body::after {
   gap: 0.4rem;
   text-align: center;
   background: rgba(8, 15, 30, 0.45);
+  min-width: 44px;
+  min-height: 44px;
+  transition: transform 0.1s ease, opacity 0.12s ease;
 }
 
 .evolution-card h3 {
@@ -501,6 +545,9 @@ body::after {
   text-align: center;
   gap: var(--space-sm);
   padding: var(--space-lg);
+  min-width: 44px;
+  min-height: 44px;
+  transition: transform 0.1s ease, opacity 0.12s ease;
 }
 
 .evolution-empty-state h3 {
@@ -562,6 +609,49 @@ body.details-open .bottom-nav-wrap {
   border-radius: var(--radius-md);
   padding: 0.55rem 0.8rem;
   font-weight: 700;
+  min-width: 44px;
+  min-height: 44px;
+  transition: transform 0.1s ease, opacity 0.12s ease;
+}
+
+.nav-item:active,
+.pokemon-card:active,
+.evolution-card:active,
+.evolution-empty-state:active,
+.details-back-button:active,
+.evolution-submit:active,
+.retry-action:active {
+  transform: scale(0.96);
+  opacity: 0.86;
+}
+
+.error-state {
+  display: grid;
+  gap: var(--space-md);
+  text-align: center;
+  padding: var(--space-lg);
+}
+
+.error-state p {
+  color: var(--color-text-secondary);
+}
+
+.retry-action {
+  justify-self: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--theme-color) 45%, rgba(255, 255, 255, 0.24));
+  background: color-mix(in srgb, var(--theme-color) 24%, rgba(9, 15, 28, 0.9));
+  color: var(--color-text-primary);
+  font-weight: 700;
+  padding: 0.65rem 0.95rem;
+  transition: transform 0.1s ease, opacity 0.12s ease;
+}
+
+.details-moves-table-skeleton {
+  display: grid;
+  gap: 0.42rem;
 }
 
 .details-back-button svg {
