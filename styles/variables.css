@@ -6,8 +6,14 @@
   --color-border: rgba(202, 220, 255, 0.14);
   --color-text-primary: #ecf1ff;
   --color-text-secondary: #afbddb;
-  --color-accent: #7fa5ff;
-  --color-accent-soft: rgba(127, 165, 255, 0.16);
+  --color-accent: #50c878;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 24%, transparent);
+
+  --theme-color: #50c878;
+  --theme-border: color-mix(in srgb, var(--theme-color) 36%, rgba(255, 255, 255, 0.2));
+  --bg-blob-color-1: color-mix(in srgb, var(--theme-color) 38%, transparent);
+  --bg-blob-color-2: color-mix(in srgb, var(--theme-color) 26%, transparent);
+  --bg-blob-color-3: color-mix(in srgb, var(--theme-color) 18%, transparent);
 
   --type-normal: #a8a77a;
   --type-fighting: #c22e28;
