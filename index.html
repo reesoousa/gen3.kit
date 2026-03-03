@@ -150,6 +150,20 @@
           <section class="evolution-chain glass-panel" id="evolution-chain" aria-live="polite"></section>
         </section>
 
+        <section class="view" id="view-hms" data-view="hms" hidden>
+          <header class="view-header">
+            <h2 class="view-title">Compatibilidade de HMs</h2>
+            <p class="view-subtitle">Selecione uma combinação de HMs e descubra quais Pokémon da região atual aprendem todos os golpes.</p>
+          </header>
+
+          <section class="hms-controls glass-panel" aria-label="Seleção de máquinas ocultas">
+            <div class="hms-toggle-list" id="hms-toggle-list" role="group" aria-label="Máquinas ocultas disponíveis"></div>
+          </section>
+
+          <p class="hms-status" id="hms-status" aria-live="polite">Abra a aba HMs para analisar compatibilidade.</p>
+          <div class="dex-grid hms-grid" id="hms-grid"></div>
+        </section>
+
         <section class="view" id="view-details" data-view="details" hidden>
           <header class="details-header glass-panel">
             <button class="details-back-button" id="details-back-button" type="button" aria-label="Voltar para a tela anterior">
@@ -209,6 +223,12 @@
             <path d="M7 17l5-10 5 10M9 13h6" />
           </svg>
           <span>Evoluções</span>
+        </button>
+        <button class="nav-item" type="button" data-target="hms">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 8l8-4 8 4-8 4-8-4zm0 8l8 4 8-4M4 12l8 4 8-4" />
+          </svg>
+          <span>HMs</span>
         </button>
       </nav>
     </div>
