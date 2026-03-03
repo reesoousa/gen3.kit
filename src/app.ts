@@ -63,6 +63,8 @@ const typeLabelMap: Record<string, string> = {
 
 let dexEntries: PokemonEntry[] = [];
 let dexLoadedGame: GameKey | null = null;
+const dexCache = new Map<number, PokemonEntry[]>();
+let activeDexRequestId = 0;
 
 function activateView(target: string): void {
   navItems.forEach((item) => {
@@ -140,10 +142,20 @@ async function fetchPokemonDetail(nationalId: number): Promise<PokemonEntry> {
 }
 
 async function loadDexForGame(game: GameKey): Promise<void> {
+  const requestId = ++activeDexRequestId;
   const { pokedexId } = dexConfigByGame[game];
 
   setDexStatus('Carregando Pokédex...');
   if (dexGrid) dexGrid.innerHTML = '';
+
+  const cachedEntries = dexCache.get(pokedexId);
+  if (cachedEntries) {
+    dexEntries = cachedEntries;
+    dexLoadedGame = game;
+    renderDexGrid();
+    setDexStatus(`Dados carregados em cache: ${cachedEntries.length} Pokémon disponíveis.`);
+    return;
+  }
 
   const pokedexResponse = await fetch(`https://pokeapi.co/api/v2/pokedex/${pokedexId}/`);
   if (!pokedexResponse.ok) {
@@ -164,19 +176,25 @@ async function loadDexForGame(game: GameKey): Promise<void> {
     .sort((a, b) => a.regionalNumber - b.regionalNumber);
 
   const detailedEntries = await Promise.all(entries.map((entry) => fetchPokemonDetail(entry.nationalId)));
+  if (requestId !== activeDexRequestId) {
+    return;
+  }
+
+  const regionalByNationalId = new Map(entries.map((entry) => [entry.nationalId, entry.regionalNumber]));
 
   dexEntries = detailedEntries
     .map((pokemon) => {
-      const regionalData = entries.find((entry) => entry.nationalId === pokemon.nationalId);
       return {
         ...pokemon,
-        regionalNumber: regionalData?.regionalNumber ?? pokemon.nationalId,
+        regionalNumber: regionalByNationalId.get(pokemon.nationalId) ?? pokemon.nationalId,
       };
     })
     .sort((a, b) => a.regionalNumber - b.regionalNumber);
 
+  dexCache.set(pokedexId, dexEntries);
   dexLoadedGame = game;
   renderDexGrid();
+  setDexStatus(`Pokédex carregada com sucesso: ${dexEntries.length} Pokémon disponíveis.`);
 }
 
 function createPokemonCard(entry: PokemonEntry, game: GameKey): string {
