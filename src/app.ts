@@ -69,7 +69,7 @@ let activeDexRequestId = 0;
 function activateView(target: string): void {
   navItems.forEach((item) => {
     const isActive = item.dataset.target === target;
-    item.classList.toggle('is-active', isActive);
+    item.classList.toggle('active', isActive);
 
     if (isActive) {
       item.setAttribute('aria-current', 'page');

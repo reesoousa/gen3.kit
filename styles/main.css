@@ -143,9 +143,13 @@ body::after {
 }
 
 .view {
-  display: grid;
+  display: none;
   gap: var(--space-xl);
   align-content: start;
+}
+
+.view.active {
+  display: grid;
 }
 
 .view-header {
@@ -391,7 +395,7 @@ body::after {
   font-weight: 600;
 }
 
-.nav-item.is-active {
+.nav-item.active {
   color: var(--color-accent);
   background: var(--color-accent-soft);
   border-color: color-mix(in srgb, var(--color-accent) 35%, rgba(255, 255, 255, 0.2));
