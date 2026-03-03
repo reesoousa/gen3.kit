@@ -39,6 +39,21 @@ type EvolutionPath = {
   methods: string[];
 };
 
+
+type PokemonStat = {
+  stat: { name: string };
+  base_stat: number;
+};
+
+type PokemonMove = {
+  move: { name: string };
+  version_group_details: Array<{
+    level_learned_at: number;
+    move_learn_method: { name: string };
+    version_group: { name: string };
+  }>;
+};
+
 const navItems = Array.from(document.querySelectorAll<HTMLButtonElement>('.nav-item'));
 const views = Array.from(document.querySelectorAll<HTMLElement>('.view'));
 const gameSelect = document.querySelector<HTMLSelectElement>('#game-select');
@@ -53,6 +68,19 @@ const evolutionSearchInput = document.querySelector<HTMLInputElement>('#evolutio
 const evolutionSuggestions = document.querySelector<HTMLDataListElement>('#evolution-suggestions');
 const evolutionStatus = document.querySelector<HTMLParagraphElement>('#evolution-status');
 const evolutionChainContainer = document.querySelector<HTMLElement>('#evolution-chain');
+
+
+const appShell = document.querySelector<HTMLElement>('.app-shell');
+const topHeader = document.querySelector<HTMLElement>('.top-header');
+const bottomNavWrap = document.querySelector<HTMLElement>('.bottom-nav-wrap');
+const detailsView = document.querySelector<HTMLElement>('#view-details');
+const detailsBackButton = document.querySelector<HTMLButtonElement>('#details-back-button');
+const detailsHero = document.querySelector<HTMLElement>('#details-hero');
+const detailsFlavorText = document.querySelector<HTMLParagraphElement>('#details-flavor-text');
+const detailsStats = document.querySelector<HTMLElement>('#details-stats');
+const detailsStrategy = document.querySelector<HTMLParagraphElement>('#details-strategy');
+const detailsEncounters = document.querySelector<HTMLUListElement>('#details-encounters');
+const detailsMoves = document.querySelector<HTMLElement>('#details-moves');
 
 const themeMap: Record<GameKey, string> = {
   emerald: '#50C878',
@@ -70,6 +98,17 @@ const dexConfigByGame: Record<GameKey, DexConfig> = {
   leafgreen: { pokedexId: 2, spriteFolder: 'firered-leafgreen' },
 };
 
+
+
+const gen3FlavorVersions = new Set(['emerald', 'ruby', 'sapphire', 'firered', 'leafgreen']);
+const statLabelMap: Record<string, string> = {
+  hp: 'HP',
+  attack: 'Attack',
+  defense: 'Defense',
+  'special-attack': 'Sp. Atk',
+  'special-defense': 'Sp. Def',
+  speed: 'Speed',
+};
 const typeLabelMap: Record<string, string> = {
   normal: 'Normal',
   fire: 'Fire',
@@ -94,6 +133,7 @@ let dexEntries: PokemonEntry[] = [];
 let dexLoadedGame: GameKey | null = null;
 const dexCache = new Map<number, PokemonEntry[]>();
 let activeDexRequestId = 0;
+let previousViewTarget: 'tipos' | 'dex' | 'evolucoes' = 'tipos';
 
 function activateView(target: string): void {
   navItems.forEach((item) => {
@@ -258,7 +298,7 @@ function createPokemonCard(entry: PokemonEntry, game: GameKey): string {
     .join('');
 
   return `
-    <article class="pokemon-card glass-panel">
+    <article class="pokemon-card glass-panel js-open-details" data-national-id="${entry.nationalId}" data-pokemon-name="${entry.name}">
       <p class="dex-number">#${String(entry.regionalNumber).padStart(3, '0')}</p>
       <div class="sprite-slot" aria-hidden="true">
         <img class="pokemon-sprite" src="${getSpriteUrl(game, entry.nationalId)}" alt="Sprite de ${formatPokemonName(entry.name)}" loading="lazy" />
@@ -376,7 +416,7 @@ function renderEvolutionChain(paths: EvolutionPath[], selectedPokemonName: strin
   if (hasOnlyOneStage) {
     const singlePokemon = paths[0].steps[0];
     evolutionChainContainer.innerHTML = `
-      <article class="evolution-empty-state">
+      <article class="evolution-empty-state js-open-details" data-national-id="${singlePokemon.nationalId}" data-pokemon-name="${singlePokemon.name}">
         <div class="sprite-slot" aria-hidden="true">
           <img class="pokemon-sprite" src="${getSpriteUrl(game, singlePokemon.nationalId)}" alt="Sprite de ${formatPokemonName(singlePokemon.name)}" />
         </div>
@@ -397,7 +437,7 @@ function renderEvolutionChain(paths: EvolutionPath[], selectedPokemonName: strin
 
           return `
             <div class="evolution-stage-wrap">
-              <article class="evolution-card ${isSelected ? 'is-selected' : ''}">
+              <article class="evolution-card js-open-details ${isSelected ? 'is-selected' : ''}" data-national-id="${step.nationalId}" data-pokemon-name="${step.name}">
                 <div class="sprite-slot" aria-hidden="true">
                   <img class="pokemon-sprite" src="${getSpriteUrl(game, step.nationalId)}" alt="Sprite de ${formatPokemonName(step.name)}" loading="lazy" />
                 </div>
@@ -473,11 +513,243 @@ async function handleEvolutionSearchSubmit(event: SubmitEvent): Promise<void> {
   }
 }
 
+
+function getVersionGroupByGame(game: GameKey): 'emerald' | 'ruby-sapphire' | 'firered-leafgreen' {
+  if (game === 'firered' || game === 'leafgreen') return 'firered-leafgreen';
+  if (game === 'ruby' || game === 'sapphire') return 'ruby-sapphire';
+  return 'emerald';
+}
+
+function formatFlavorText(text: string): string {
+  return text.replace(/[\f\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function formatDexNumber(id: number): string {
+  return `#${String(id).padStart(3, '0')}`;
+}
+
+function setDetailsLoadingState(pokemonName: string): void {
+  if (detailsHero) {
+    detailsHero.innerHTML = `<p>Carregando detalhes de ${formatPokemonName(pokemonName)}...</p>`;
+  }
+  if (detailsFlavorText) detailsFlavorText.textContent = 'Carregando entrada da Pokédex...';
+  if (detailsStats) detailsStats.innerHTML = '<p>Carregando status base...</p>';
+  if (detailsStrategy) detailsStrategy.textContent = 'Calculando recomendação estratégica...';
+  if (detailsEncounters) detailsEncounters.innerHTML = '<li>Carregando locais de encontro...</li>';
+  if (detailsMoves) detailsMoves.innerHTML = '<p>Carregando learnset...</p>';
+}
+
+function renderDetailsHero(entry: PokemonEntry): void {
+  if (!detailsHero) return;
+
+  const typeTags = entry.types
+    .map((type) => {
+      const label = typeLabelMap[type.name] ?? formatPokemonName(type.name);
+      return `<span class="type-chip" data-type="${type.name}">${label}</span>`;
+    })
+    .join('');
+
+  detailsHero.innerHTML = `
+    <p class="dex-number">${formatDexNumber(entry.regionalNumber || entry.nationalId)}</p>
+    <div class="details-sprite-slot" aria-hidden="true">
+      <img class="details-sprite" src="${getSpriteUrl(getCurrentGame(), entry.nationalId)}" alt="Sprite de ${formatPokemonName(entry.name)}" />
+    </div>
+    <h2 class="details-name">${formatPokemonName(entry.name)}</h2>
+    <div class="type-chip-list">${typeTags}</div>
+  `;
+}
+
+function renderStats(stats: PokemonStat[]): void {
+  if (!detailsStats) return;
+
+  const maxStat = 255;
+  detailsStats.innerHTML = stats
+    .map((statData) => {
+      const label = statLabelMap[statData.stat.name] ?? formatResourceName(statData.stat.name);
+      const width = Math.min(100, Math.round((statData.base_stat / maxStat) * 100));
+
+      return `
+        <article class="stat-row">
+          <header>
+            <span>${label}</span>
+            <strong>${statData.base_stat}</strong>
+          </header>
+          <div class="stat-track" role="progressbar" aria-valuemin="0" aria-valuemax="255" aria-valuenow="${statData.base_stat}" aria-label="${label}">
+            <span class="stat-fill" style="width: ${width}%"></span>
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+}
+
+function renderStrategy(stats: PokemonStat[]): void {
+  if (!detailsStrategy) return;
+
+  const attack = stats.find((item) => item.stat.name === 'attack')?.base_stat ?? 0;
+  const specialAttack = stats.find((item) => item.stat.name === 'special-attack')?.base_stat ?? 0;
+
+  if (attack > specialAttack) {
+    detailsStrategy.textContent = 'Este Pokémon tem vantagem com ataques FÍSICOS.';
+    return;
+  }
+
+  if (specialAttack > attack) {
+    detailsStrategy.textContent = 'Este Pokémon tem vantagem com ataques ESPECIAIS.';
+    return;
+  }
+
+  detailsStrategy.textContent = 'Este Pokémon é HÍBRIDO (bons status Físicos e Especiais).';
+}
+
+function renderEncounters(encounters: Array<{ location_area: { name: string } }>): void {
+  if (!detailsEncounters) return;
+
+  if (!encounters.length) {
+    detailsEncounters.innerHTML = '<li>Não encontrado na natureza neste jogo.</li>';
+    return;
+  }
+
+  const uniqueNames = Array.from(new Set(encounters.map((entry) => formatResourceName(entry.location_area.name))));
+  detailsEncounters.innerHTML = uniqueNames.map((name) => `<li>${name}</li>`).join('');
+}
+
+function renderLearnset(moves: PokemonMove[]): void {
+  if (!detailsMoves) return;
+
+  if (!moves.length) {
+    detailsMoves.innerHTML = '<p>Nenhum golpe por nível encontrado para o jogo selecionado.</p>';
+    return;
+  }
+
+  const rows = moves
+    .map((move) => `<tr><td>${move.version_group_details[0].level_learned_at}</td><td>${formatResourceName(move.move.name)}</td></tr>`)
+    .join('');
+
+  detailsMoves.innerHTML = `
+    <table class="details-moves-table">
+      <thead>
+        <tr>
+          <th>Nível</th>
+          <th>Movimento</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+async function openPokemonDetails(nationalId: number, pokemonName: string): Promise<void> {
+  if (!detailsView) return;
+
+  const game = getCurrentGame();
+  const currentActiveView = views.find((view) => view.classList.contains('active'))?.dataset.view;
+  if (currentActiveView === 'dex' || currentActiveView === 'evolucoes' || currentActiveView === 'tipos') {
+    previousViewTarget = currentActiveView;
+  }
+
+  activateView('details');
+  detailsView.hidden = false;
+  document.body.classList.add('details-open');
+  appShell?.classList.add('details-open');
+  topHeader?.setAttribute('hidden', 'true');
+  bottomNavWrap?.setAttribute('hidden', 'true');
+
+  setDetailsLoadingState(pokemonName);
+
+  try {
+    const [pokemonResponse, speciesResponse, encounterResponse] = await Promise.all([
+      fetch(`https://pokeapi.co/api/v2/pokemon/${nationalId}`),
+      fetch(`https://pokeapi.co/api/v2/pokemon-species/${nationalId}`),
+      fetch(`https://pokeapi.co/api/v2/pokemon/${nationalId}/encounters`),
+    ]);
+
+    if (!pokemonResponse.ok || !speciesResponse.ok || !encounterResponse.ok) {
+      throw new Error('Falha ao carregar detalhes do Pokémon.');
+    }
+
+    const pokemonData = await pokemonResponse.json();
+    const speciesData = await speciesResponse.json();
+    const encounterData = await encounterResponse.json();
+
+    const fallbackEntry = dexEntries.find((entry) => entry.nationalId === nationalId);
+    const detailEntry: PokemonEntry = {
+      regionalNumber: fallbackEntry?.regionalNumber ?? nationalId,
+      nationalId,
+      name: pokemonData.name,
+      types: pokemonData.types
+        .sort((a: { slot: number }, b: { slot: number }) => a.slot - b.slot)
+        .map((item: { type: { name: string } }) => ({ name: item.type.name })),
+    };
+
+    const flavorEntry = (speciesData.flavor_text_entries as Array<{ flavor_text: string; language: { name: string }; version: { name: string } }>).find(
+      (entry) => entry.language.name === 'en' && gen3FlavorVersions.has(entry.version.name),
+    );
+
+    const allowedVersionNames = new Set(['emerald', 'ruby', 'sapphire', 'firered', 'leafgreen']);
+    const filteredEncounters = (encounterData as Array<{ location_area: { name: string }; version_details: Array<{ version: { name: string } }> }>).filter(
+      (entry) => entry.version_details.some((detail) => allowedVersionNames.has(detail.version.name)),
+    );
+
+    const currentVersionGroup = getVersionGroupByGame(game);
+    const filteredMoves = (pokemonData.moves as PokemonMove[])
+      .flatMap((move) => {
+        const validDetails = move.version_group_details
+          .filter(
+            (detail) =>
+              detail.version_group.name === currentVersionGroup &&
+              detail.move_learn_method.name === 'level-up' &&
+              detail.level_learned_at > 0,
+          )
+          .sort((a, b) => a.level_learned_at - b.level_learned_at);
+
+        if (!validDetails.length) return [];
+
+        return [
+          {
+            move: move.move,
+            version_group_details: [validDetails[0]],
+          } as PokemonMove,
+        ];
+      })
+      .sort((a, b) => a.version_group_details[0].level_learned_at - b.version_group_details[0].level_learned_at);
+
+    renderDetailsHero(detailEntry);
+    if (detailsFlavorText) {
+      detailsFlavorText.textContent = flavorEntry ? formatFlavorText(flavorEntry.flavor_text) : 'Entrada da Pokédex indisponível para a Gen 3.';
+    }
+    renderStats(pokemonData.stats as PokemonStat[]);
+    renderStrategy(pokemonData.stats as PokemonStat[]);
+    renderEncounters(filteredEncounters);
+    renderLearnset(filteredMoves);
+  } catch (error) {
+    console.error(error);
+    if (detailsHero) detailsHero.innerHTML = `<p>Erro ao carregar detalhes de ${formatPokemonName(pokemonName)}.</p>`;
+    if (detailsFlavorText) detailsFlavorText.textContent = 'Não foi possível carregar a entrada da Pokédex.';
+    if (detailsStats) detailsStats.innerHTML = '<p>Não foi possível carregar os status base.</p>';
+    if (detailsStrategy) detailsStrategy.textContent = 'Não foi possível calcular a recomendação estratégica.';
+    if (detailsEncounters) detailsEncounters.innerHTML = '<li>Não foi possível carregar os locais de captura.</li>';
+    if (detailsMoves) detailsMoves.innerHTML = '<p>Não foi possível carregar o learnset.</p>';
+  }
+}
+
+function closePokemonDetails(): void {
+  document.body.classList.remove('details-open');
+  appShell?.classList.remove('details-open');
+  topHeader?.removeAttribute('hidden');
+  bottomNavWrap?.removeAttribute('hidden');
+  activateView(previousViewTarget);
+}
+
 function bindEvents(): void {
   navItems.forEach((item) => {
     item.addEventListener('click', async () => {
       const target = item.dataset.target;
       if (!target) return;
+
+      if (target === 'tipos' || target === 'dex' || target === 'evolucoes') {
+        previousViewTarget = target;
+      }
 
       activateView(target);
 
@@ -509,6 +781,23 @@ function bindEvents(): void {
     void handleEvolutionSearchSubmit(event as SubmitEvent);
   });
 
+
+
+  detailsBackButton?.addEventListener('click', () => {
+    closePokemonDetails();
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement;
+    const trigger = target.closest<HTMLElement>('.js-open-details');
+    if (!trigger) return;
+
+    const nationalId = Number(trigger.dataset.nationalId);
+    const pokemonName = trigger.dataset.pokemonName ?? '';
+
+    if (!nationalId || !pokemonName) return;
+    void openPokemonDetails(nationalId, pokemonName);
+  });
   gameSelect?.addEventListener('change', async (event) => {
     const select = event.currentTarget as HTMLSelectElement;
     const game = (select.value as GameKey) || 'emerald';

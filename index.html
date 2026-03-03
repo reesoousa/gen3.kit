@@ -149,6 +149,44 @@
 
           <section class="evolution-chain glass-panel" id="evolution-chain" aria-live="polite"></section>
         </section>
+
+        <section class="view" id="view-details" data-view="details" hidden>
+          <header class="details-header glass-panel">
+            <button class="details-back-button" id="details-back-button" type="button" aria-label="Voltar para a tela anterior">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+              <span>Voltar</span>
+            </button>
+          </header>
+
+          <article class="details-hero glass-panel" id="details-hero"></article>
+
+          <article class="details-panel glass-panel">
+            <h3>Entrada da Pokédex (Gen 3)</h3>
+            <p id="details-flavor-text">Selecione um Pokémon para ver os detalhes.</p>
+          </article>
+
+          <article class="details-panel glass-panel">
+            <h3>Status Base</h3>
+            <div class="details-stats" id="details-stats"></div>
+          </article>
+
+          <article class="details-panel glass-panel">
+            <h3>Recomendação Estratégica</h3>
+            <p id="details-strategy"></p>
+          </article>
+
+          <article class="details-panel glass-panel">
+            <h3>Onde Capturar (Gen 3)</h3>
+            <ul class="details-encounters" id="details-encounters"></ul>
+          </article>
+
+          <article class="details-panel glass-panel">
+            <h3>Learnset por Nível (Gen 3)</h3>
+            <div class="details-moves" id="details-moves"></div>
+          </article>
+        </section>
       </main>
     </div>
 
