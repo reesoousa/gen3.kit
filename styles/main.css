@@ -435,25 +435,51 @@ textarea {
 
 .bottom-nav-wrap {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  bottom: 20px;
+  width: calc(100% - 40px);
+  margin: 0 20px;
   z-index: 40;
-  padding: 0 var(--space-md) var(--safe-bottom);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
   pointer-events: none;
 }
 
 .bottom-nav {
-  width: min(760px, 100%);
-  border-radius: 28px;
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.bottom-nav-pill {
+  border-radius: 30px;
   padding: 0.45rem;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.35rem;
-  background: rgba(18, 27, 44, 0.9);
-  pointer-events: auto;
+  background: rgba(18, 27, 44, 0.72);
+  flex: 1;
+  max-width: calc(100% - 64px);
+}
+
+.teambuilder-fab {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-left: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--theme-color) 56%, rgba(255, 255, 255, 0.2));
+  background: linear-gradient(145deg, rgba(20, 30, 48, 0.9), rgba(14, 21, 35, 0.88));
+}
+
+.teambuilder-fab img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
 }
 
 .nav-item {
@@ -673,6 +699,135 @@ body.details-open .bottom-nav-wrap {
   display: none;
 }
 
+body.teambuilder-open {
+  overflow: hidden;
+}
+
+body.teambuilder-open .top-header,
+body.teambuilder-open .bottom-nav-wrap {
+  display: none;
+}
+
+#view-teambuilder {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  overflow-y: auto;
+  padding: max(env(safe-area-inset-top), var(--space-md)) var(--space-md) calc(var(--space-xl) + var(--safe-bottom));
+  background: linear-gradient(165deg, rgba(6, 10, 19, 0.92), rgba(8, 12, 22, 0.98));
+  align-content: start;
+}
+
+.teambuilder-header,
+.teambuilder-search,
+.teambuilder-slots,
+.teambuilder-coverage {
+  padding: var(--space-md);
+}
+
+.teambuilder-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.teambuilder-header h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.teambuilder-close-button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--theme-color) 45%, rgba(255, 255, 255, 0.2));
+  background: rgba(11, 19, 33, 0.75);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.8rem;
+  font-weight: 700;
+}
+
+.teambuilder-close-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.team-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.team-slot {
+  min-height: 112px;
+  border-radius: var(--radius-md);
+  border: 1px dashed color-mix(in srgb, var(--theme-color) 55%, rgba(255, 255, 255, 0.24));
+  background: rgba(10, 18, 31, 0.55);
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  padding: 0.6rem;
+  transition: transform 0.1s ease, opacity 0.12s ease, border-color 0.5s ease;
+}
+
+.team-slot.is-filled {
+  border-style: solid;
+}
+
+.team-slot.is-selected {
+  border-color: color-mix(in srgb, var(--theme-color) 78%, white 22%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-color) 40%, transparent);
+}
+
+.team-slot-title {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+.team-slot-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.team-member-remove {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(149, 44, 61, 0.28);
+  color: #ffd7df;
+}
+
+.team-coverage-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.coverage-warning {
+  color: #ff9f7a;
+  font-weight: 700;
+}
+
+.coverage-strong {
+  color: #89e6b1;
+  font-weight: 700;
+}
+
 #view-details {
   position: fixed;
   inset: 0;
@@ -711,7 +866,11 @@ body.details-open .bottom-nav-wrap {
 .evolution-empty-state:active,
 .details-back-button:active,
 .evolution-submit:active,
-.retry-action:active {
+.retry-action:active,
+.teambuilder-fab:active,
+.team-slot:active,
+.teambuilder-close-button:active,
+.team-member-remove:active {
   transform: scale(0.96);
   opacity: 0.86;
 }
