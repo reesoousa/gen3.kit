@@ -153,6 +153,7 @@ function renderDexSkeleton(cardCount = 12) {
 function renderEvolutionSkeleton(cardCount = 3) {
     if (!evolutionChainContainer)
         return;
+    evolutionChainContainer.classList.add('visible');
     evolutionChainContainer.innerHTML = Array.from({ length: cardCount }, () => `
     <article class="evolution-path" aria-hidden="true">
       <div class="evolution-card">
@@ -242,6 +243,11 @@ function setEvolutionStatus(message) {
     if (evolutionStatus) {
         evolutionStatus.textContent = message;
     }
+}
+function setEvolutionChainVisible(isVisible) {
+    if (!evolutionChainContainer)
+        return;
+    evolutionChainContainer.classList.toggle('visible', isVisible);
 }
 function setHMStatus(message) {
     if (hmsStatus) {
@@ -695,6 +701,7 @@ async function searchEvolutionByName(pokemonName) {
     const normalizedSearch = pokemonName.trim().toLowerCase();
     if (!normalizedSearch) {
         setEvolutionStatus('Digite o nome de um Pokémon para pesquisar evoluções.');
+        setEvolutionChainVisible(false);
         return;
     }
     const allowedEntry = dexEntries.find((entry) => entry.name.toLowerCase() === normalizedSearch);
@@ -702,6 +709,7 @@ async function searchEvolutionByName(pokemonName) {
         setEvolutionStatus('Pokémon fora da Pokédex regional atual. Troque de jogo ou pesquise outro nome.');
         if (evolutionChainContainer)
             evolutionChainContainer.innerHTML = '';
+        setEvolutionChainVisible(false);
         return;
     }
     try {
@@ -714,6 +722,7 @@ async function searchEvolutionByName(pokemonName) {
         console.error(error);
         setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
         renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
+        setEvolutionChainVisible(true);
     }
 }
 async function handleEvolutionSearchSubmit(event) {
@@ -1143,6 +1152,7 @@ function bindEvents() {
                 setEvolutionStatus('Região atualizada. Pesquise um Pokémon para ver a cadeia de evolução.');
                 if (evolutionChainContainer)
                     evolutionChainContainer.innerHTML = '';
+                setEvolutionChainVisible(false);
                 if (evolutionSearchInput)
                     evolutionSearchInput.value = '';
                 hideAutocompleteList(evolutionAutocompleteList);
@@ -1160,5 +1170,6 @@ function initApp() {
     activateView('tipos');
     applyThemeByGame(getCurrentGame());
     renderHMToggles();
+    setEvolutionChainVisible(false);
 }
 initApp();
