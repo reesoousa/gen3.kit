@@ -114,9 +114,11 @@ const detailsMoves = document.querySelector<HTMLElement>('#details-moves');
 const teamBuilderView = document.querySelector<HTMLElement>('#view-teambuilder');
 const openTeamBuilderButton = document.querySelector<HTMLButtonElement>('#open-teambuilder-button');
 const teamBuilderBackButton = document.querySelector<HTMLButtonElement>('#teambuilder-back-button');
+const teamSearchSection = document.querySelector<HTMLElement>('#team-search-section');
 const teamSearchInput = document.querySelector<HTMLInputElement>('#team-search');
 const teamAutocompleteList = document.querySelector<HTMLUListElement>('#team-autocomplete-list');
 const teamSlotsGrid = document.querySelector<HTMLDivElement>('#team-slots-grid');
+const teamCoverageContainer = document.querySelector<HTMLElement>('.teambuilder-coverage');
 const teamCoveragePanel = document.querySelector<HTMLDivElement>('#team-coverage-panel');
 
 const themeMap: Record<GameKey, string> = {
@@ -222,6 +224,7 @@ let selectedHMs = new Set<HMName>();
 const hmLearnsetCache = new Map<string, Set<HMName>>();
 let currentTeam: Array<PokemonEntry | null> = Array.from({ length: 6 }, () => null);
 let activeTeamSlotIndex = 0;
+let isTeamSearchVisible = false;
 
 function triggerHapticFeedback(duration = 50): void {
   try {
@@ -628,6 +631,7 @@ function openTeamBuilder(): void {
   bottomNavWrap?.setAttribute('hidden', 'hidden');
   activateView('teambuilder');
   teamBuilderView?.removeAttribute('hidden');
+  setTeamSearchVisibility(false);
 }
 
 function closeTeamBuilder(): void {
@@ -635,9 +639,29 @@ function closeTeamBuilder(): void {
   appShell?.classList.remove('teambuilder-open');
   topHeader?.removeAttribute('hidden');
   bottomNavWrap?.removeAttribute('hidden');
-  hideAutocompleteList(teamAutocompleteList);
-  if (teamSearchInput) teamSearchInput.value = '';
+  setTeamSearchVisibility(false);
   activateView(previousViewTarget);
+}
+
+
+function setTeamSearchVisibility(visible: boolean, shouldFocus = false): void {
+  isTeamSearchVisible = visible;
+
+  if (!teamSearchSection || !teamSearchInput) return;
+
+  teamSearchSection.hidden = !visible;
+
+  if (!visible) {
+    teamSearchInput.value = '';
+    hideAutocompleteList(teamAutocompleteList);
+    return;
+  }
+
+  if (shouldFocus) {
+    window.requestAnimationFrame(() => {
+      teamSearchInput.focus();
+    });
+  }
 }
 
 function analyzeCoverage(teamArray: Array<PokemonEntry | null>): TeamCoverageResult {
@@ -717,8 +741,17 @@ function renderTeamCoveragePanel(): void {
   if (!teamCoveragePanel) return;
 
   const teamMembers = currentTeam.filter((member): member is PokemonEntry => Boolean(member));
-  const analysis = analyzeCoverage(currentTeam);
   const hasMembers = teamMembers.length > 0;
+
+  teamCoverageContainer?.classList.toggle('visible', hasMembers);
+
+  if (!hasMembers) {
+    teamCoveragePanel.innerHTML = '';
+    teamCoveragePanel.classList.remove('is-updating');
+    return;
+  }
+
+  const analysis = analyzeCoverage(currentTeam);
   const isSingleMemberTeam = teamMembers.length === 1;
   const hasZeroCriticalWeaknesses = hasMembers && analysis.criticalWeaknesses.length === 0;
 
@@ -789,8 +822,13 @@ function renderTeamSlots(): void {
   }).join('');
 
   const hasRoom = filledMembers.length < 6;
-  const addButtonMarkup = hasRoom
-    ? `<button class="team-add-member" type="button" data-team-slot-index="${activeTeamSlotIndex}">+ Adicionar Membro ao Time</button>`
+
+  if (!hasRoom && isTeamSearchVisible) {
+    setTeamSearchVisibility(false);
+  }
+
+  const addButtonMarkup = hasRoom && !isTeamSearchVisible
+    ? `<button class="team-add-member" type="button" data-team-add-trigger="true">+ Adicionar membro ao time</button>`
     : '';
 
   teamSlotsGrid.innerHTML = `
@@ -821,6 +859,7 @@ function addPokemonToTeam(pokemonName: string): void {
     }
   }
 
+  setTeamSearchVisibility(false);
   renderTeamSlots();
 }
 
@@ -1367,7 +1406,7 @@ function bindEvents(): void {
       hideAutocompleteList(evolutionAutocompleteList);
     }
 
-    const clickedTeamAutocomplete = target.closest('#team-autocomplete-list, #team-search');
+    const clickedTeamAutocomplete = target.closest('#team-autocomplete-list, #team-search, #team-search-section');
     if (!clickedTeamAutocomplete) {
       hideAutocompleteList(teamAutocompleteList);
     }
@@ -1434,6 +1473,13 @@ function bindEvents(): void {
         activeTeamSlotIndex = removeIndex;
         renderTeamSlots();
       }
+      return;
+    }
+
+    const addMemberTrigger = target.closest<HTMLElement>('[data-team-add-trigger]');
+    if (addMemberTrigger) {
+      triggerHapticFeedback();
+      setTeamSearchVisibility(true, true);
       return;
     }
 

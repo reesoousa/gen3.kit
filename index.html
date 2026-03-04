@@ -166,10 +166,11 @@
 
         <section class="view" id="view-details" data-view="details" hidden>
           <header class="details-header glass-panel">
-            <button class="details-back-button" id="details-back-button" type="button" aria-label="Voltar para a tela anterior">
+            <button class="details-back-button back-button" id="details-back-button" type="button" aria-label="Voltar para a tela anterior">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M15 5l-7 7 7 7" />
               </svg>
+              <span>Voltar</span>
             </button>
           </header>
 
@@ -203,15 +204,16 @@
 
         <section class="view" id="view-teambuilder" data-view="teambuilder" hidden>
           <header class="teambuilder-header glass-panel">
-            <button id="teambuilder-back-button" class="teambuilder-back-button" type="button" aria-label="Voltar para tela anterior">
+            <button id="teambuilder-back-button" class="teambuilder-back-button back-button" type="button" aria-label="Voltar para tela anterior">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M15 5l-7 7 7 7" />
               </svg>
+              <span>Voltar</span>
             </button>
             <h2>Team Building</h2>
           </header>
 
-          <section class="teambuilder-search glass-panel" aria-label="Busca para montar time">
+          <section class="teambuilder-search glass-panel" id="team-search-section" aria-label="Busca para montar time" hidden>
             <label class="control-field" for="team-search">
               <span>Adicionar Pokémon ao slot selecionado</span>
               <input id="team-search" type="text" placeholder="Ex.: salamence" autocomplete="off" />

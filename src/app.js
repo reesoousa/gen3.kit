@@ -28,9 +28,11 @@ const detailsMoves = document.querySelector('#details-moves');
 const teamBuilderView = document.querySelector('#view-teambuilder');
 const openTeamBuilderButton = document.querySelector('#open-teambuilder-button');
 const teamBuilderBackButton = document.querySelector('#teambuilder-back-button');
+const teamSearchSection = document.querySelector('#team-search-section');
 const teamSearchInput = document.querySelector('#team-search');
 const teamAutocompleteList = document.querySelector('#team-autocomplete-list');
 const teamSlotsGrid = document.querySelector('#team-slots-grid');
+const teamCoverageContainer = document.querySelector('.teambuilder-coverage');
 const teamCoveragePanel = document.querySelector('#team-coverage-panel');
 const themeMap = {
     emerald: '#50C878',
@@ -125,6 +127,7 @@ let selectedHMs = new Set();
 const hmLearnsetCache = new Map();
 let currentTeam = Array.from({ length: 6 }, () => null);
 let activeTeamSlotIndex = 0;
+let isTeamSearchVisible = false;
 function triggerHapticFeedback(duration = 50) {
     try {
         if ('vibrate' in window.navigator) {
@@ -461,16 +464,31 @@ function openTeamBuilder() {
     bottomNavWrap?.setAttribute('hidden', 'hidden');
     activateView('teambuilder');
     teamBuilderView?.removeAttribute('hidden');
+    setTeamSearchVisibility(false);
 }
 function closeTeamBuilder() {
     document.body.classList.remove('teambuilder-open');
     appShell?.classList.remove('teambuilder-open');
     topHeader?.removeAttribute('hidden');
     bottomNavWrap?.removeAttribute('hidden');
-    hideAutocompleteList(teamAutocompleteList);
-    if (teamSearchInput)
-        teamSearchInput.value = '';
+    setTeamSearchVisibility(false);
     activateView(previousViewTarget);
+}
+function setTeamSearchVisibility(visible, shouldFocus = false) {
+    isTeamSearchVisible = visible;
+    if (!teamSearchSection || !teamSearchInput)
+        return;
+    teamSearchSection.hidden = !visible;
+    if (!visible) {
+        teamSearchInput.value = '';
+        hideAutocompleteList(teamAutocompleteList);
+        return;
+    }
+    if (shouldFocus) {
+        window.requestAnimationFrame(() => {
+            teamSearchInput.focus();
+        });
+    }
 }
 function analyzeCoverage(teamArray) {
     const teamMembers = teamArray.filter((member) => Boolean(member));
@@ -542,8 +560,14 @@ function renderTeamCoveragePanel() {
     if (!teamCoveragePanel)
         return;
     const teamMembers = currentTeam.filter((member) => Boolean(member));
-    const analysis = analyzeCoverage(currentTeam);
     const hasMembers = teamMembers.length > 0;
+    teamCoverageContainer?.classList.toggle('visible', hasMembers);
+    if (!hasMembers) {
+        teamCoveragePanel.innerHTML = '';
+        teamCoveragePanel.classList.remove('is-updating');
+        return;
+    }
+    const analysis = analyzeCoverage(currentTeam);
     const isSingleMemberTeam = teamMembers.length === 1;
     const hasZeroCriticalWeaknesses = hasMembers && analysis.criticalWeaknesses.length === 0;
     let suggestionMarkup = analysis.biggestThreat && analysis.suggestedDefenseType
@@ -605,8 +629,11 @@ function renderTeamSlots() {
     `;
     }).join('');
     const hasRoom = filledMembers.length < 6;
-    const addButtonMarkup = hasRoom
-        ? `<button class="team-add-member" type="button" data-team-slot-index="${activeTeamSlotIndex}">+ Adicionar Membro ao Time</button>`
+    if (!hasRoom && isTeamSearchVisible) {
+        setTeamSearchVisibility(false);
+    }
+    const addButtonMarkup = hasRoom && !isTeamSearchVisible
+        ? `<button class="team-add-member" type="button" data-team-add-trigger="true">+ Adicionar membro ao time</button>`
         : '';
     teamSlotsGrid.innerHTML = `
     <div class="team-member-list">${memberCards || '<p class="team-empty-state">Seu time está vazio. Comece adicionando o primeiro membro.</p>'}</div>
@@ -631,6 +658,7 @@ function addPokemonToTeam(pokemonName) {
             activeTeamSlotIndex = nextEmptyIndex;
         }
     }
+    setTeamSearchVisibility(false);
     renderTeamSlots();
 }
 
@@ -1109,7 +1137,7 @@ function bindEvents() {
         if (!clickedEvolutionAutocomplete) {
             hideAutocompleteList(evolutionAutocompleteList);
         }
-        const clickedTeamAutocomplete = target.closest('#team-autocomplete-list, #team-search');
+        const clickedTeamAutocomplete = target.closest('#team-autocomplete-list, #team-search, #team-search-section');
         if (!clickedTeamAutocomplete) {
             hideAutocompleteList(teamAutocompleteList);
         }
@@ -1168,6 +1196,12 @@ function bindEvents() {
                 activeTeamSlotIndex = removeIndex;
                 renderTeamSlots();
             }
+            return;
+        }
+        const addMemberTrigger = target.closest('[data-team-add-trigger]');
+        if (addMemberTrigger) {
+            triggerHapticFeedback();
+            setTeamSearchVisibility(true, true);
             return;
         }
         const teamSlot = target.closest('[data-team-slot-index]');
