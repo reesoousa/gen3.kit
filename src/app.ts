@@ -251,6 +251,9 @@ function renderDexSkeleton(cardCount = 12): void {
 function renderEvolutionSkeleton(cardCount = 3): void {
   if (!evolutionChainContainer) return;
 
+  // Mostra o container somente quando houver conteúdo de fato.
+  evolutionChainContainer.classList.add('visible');
+
   evolutionChainContainer.innerHTML = Array.from({ length: cardCount }, () => `
     <article class="evolution-path" aria-hidden="true">
       <div class="evolution-card">
@@ -354,6 +357,11 @@ function setEvolutionStatus(message: string): void {
   if (evolutionStatus) {
     evolutionStatus.textContent = message;
   }
+}
+
+function setEvolutionChainVisible(isVisible: boolean): void {
+  if (!evolutionChainContainer) return;
+  evolutionChainContainer.classList.toggle('visible', isVisible);
 }
 
 
@@ -895,6 +903,7 @@ async function searchEvolutionByName(pokemonName: string): Promise<void> {
   const normalizedSearch = pokemonName.trim().toLowerCase();
   if (!normalizedSearch) {
     setEvolutionStatus('Digite o nome de um Pokémon para pesquisar evoluções.');
+    setEvolutionChainVisible(false);
     return;
   }
 
@@ -902,6 +911,7 @@ async function searchEvolutionByName(pokemonName: string): Promise<void> {
   if (!allowedEntry) {
     setEvolutionStatus('Pokémon fora da Pokédex regional atual. Troque de jogo ou pesquise outro nome.');
     if (evolutionChainContainer) evolutionChainContainer.innerHTML = '';
+    setEvolutionChainVisible(false);
     return;
   }
 
@@ -915,6 +925,7 @@ async function searchEvolutionByName(pokemonName: string): Promise<void> {
     console.error(error);
     setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
     renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
+    setEvolutionChainVisible(true);
   }
 }
 
@@ -1399,6 +1410,7 @@ function bindEvents(): void {
       if (document.querySelector('#view-evolucoes.active')) {
         setEvolutionStatus('Região atualizada. Pesquise um Pokémon para ver a cadeia de evolução.');
         if (evolutionChainContainer) evolutionChainContainer.innerHTML = '';
+        setEvolutionChainVisible(false);
         if (evolutionSearchInput) evolutionSearchInput.value = '';
         hideAutocompleteList(evolutionAutocompleteList);
       }
@@ -1415,6 +1427,7 @@ function initApp(): void {
   activateView('tipos');
   applyThemeByGame(getCurrentGame());
   renderHMToggles();
+  setEvolutionChainVisible(false);
 }
 
 

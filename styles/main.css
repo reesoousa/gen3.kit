@@ -116,7 +116,7 @@ body::after {
   top: var(--space-sm);
   z-index: 20;
   padding: var(--space-md) var(--space-lg);
-  padding-top: max(env(safe-area-inset-top), 20px);
+  padding-top: calc(max(env(safe-area-inset-top), 24px) + 16px);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -455,19 +455,26 @@ textarea {
 }
 
 .bottom-nav-pill {
-  border-radius: 30px;
+  border-radius: 50px;
   padding: 0.45rem;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.35rem;
   background: rgba(18, 27, 44, 0.72);
   flex: 1;
-  max-width: calc(100% - 64px);
+  max-width: calc(100% - 78px);
+  min-height: 64px;
+}
+
+.teambuilder-fab-wrap {
+  position: relative;
+  display: grid;
+  align-items: center;
 }
 
 .teambuilder-fab {
-  width: 50px;
-  height: 50px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -480,6 +487,48 @@ textarea {
   width: 26px;
   height: 26px;
   object-fit: contain;
+}
+
+.teambuilder-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  padding: 0.45rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--theme-color) 70%, rgba(255, 255, 255, 0.2));
+  background: color-mix(in srgb, var(--theme-color) 35%, rgba(9, 15, 29, 0.9));
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 10px 25px rgba(3, 6, 14, 0.4);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeSlideIn 0.55s ease-out 4s forwards;
+}
+
+.teambuilder-popover::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--theme-color) 35%, rgba(9, 15, 29, 0.9)) transparent transparent transparent;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .nav-item {
@@ -600,8 +649,12 @@ textarea {
 
 .evolution-chain {
   padding: var(--space-lg);
-  display: grid;
+  display: none;
   gap: var(--space-md);
+}
+
+.evolution-chain.visible {
+  display: grid;
 }
 
 .evolution-path {
