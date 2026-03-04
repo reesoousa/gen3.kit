@@ -116,7 +116,7 @@ body::after {
   top: var(--space-sm);
   z-index: 20;
   padding: var(--space-md) var(--space-lg);
-  padding-top: 3.5rem !important;
+  margin-top: calc(env(safe-area-inset-top) + 2.5rem);
   box-sizing: border-box;
   display: flex;
   justify-content: space-between;
@@ -125,7 +125,7 @@ body::after {
 }
 
 .brand-logo {
-  width: clamp(200px, 34vw, 280px);
+  width: clamp(178px, 31vw, 248px);
   height: auto;
   object-fit: contain;
   object-position: left center;
@@ -583,12 +583,12 @@ textarea {
 @media (max-width: 680px) {
   .top-header {
     padding: var(--space-md);
-    padding-top: 3.5rem !important;
+    margin-top: calc(env(safe-area-inset-top) + 2.25rem);
     box-sizing: border-box;
   }
 
   .brand-logo {
-    width: clamp(174px, 44vw, 236px);
+    width: clamp(156px, 40vw, 208px);
     height: auto;
   }
 
@@ -813,13 +813,14 @@ body.teambuilder-open .bottom-nav-wrap {
 .teambuilder-back-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--theme-color) 45%, rgba(255, 255, 255, 0.2));
-  background: rgba(11, 19, 33, 0.75);
+  justify-content: center;
+  gap: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
   color: var(--color-text-primary);
-  border-radius: var(--radius-md);
-  padding: 0.55rem 0.8rem;
-  font-weight: 700;
+  border-radius: 999px;
+  padding: 0;
   min-width: 44px;
   min-height: 44px;
 }
@@ -1017,6 +1018,16 @@ body.teambuilder-open .bottom-nav-wrap {
   line-height: 1.5;
 }
 
+.coverage-success-banner {
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(126, 226, 161, 0.56);
+  background: rgba(59, 152, 92, 0.26);
+  color: #dcffe7;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 0.7rem 0.85rem;
+}
+
 #view-details {
   position: fixed;
   inset: 0;
@@ -1038,13 +1049,14 @@ body.teambuilder-open .bottom-nav-wrap {
 .details-back-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--theme-color) 45%, rgba(255, 255, 255, 0.2));
-  background: rgba(11, 19, 33, 0.75);
+  justify-content: center;
+  gap: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
   color: var(--color-text-primary);
-  border-radius: var(--radius-md);
-  padding: 0.55rem 0.8rem;
-  font-weight: 700;
+  border-radius: 999px;
+  padding: 0;
   min-width: 44px;
   min-height: 44px;
   transition: transform 0.1s ease, opacity 0.12s ease;

@@ -509,10 +509,12 @@ function analyzeCoverage(teamArray) {
             }
         });
         attackPressureByType.set(attackingType, weakCount * 2 - resistCount - immuneCount * 2);
-        if (weakCount >= 2 && resistCount === 0 && immuneCount === 0) {
+        const isSingleMemberTeam = teamMembers.length === 1;
+        if ((isSingleMemberTeam && weakCount >= 1 && resistCount === 0 && immuneCount === 0)
+            || (!isSingleMemberTeam && weakCount >= 2 && resistCount === 0 && immuneCount === 0)) {
             criticalWeaknesses.push(attackingType);
         }
-        if (resistCount >= 2 || immuneCount >= 1) {
+        if ((isSingleMemberTeam && (resistCount >= 1 || immuneCount >= 1)) || resistCount >= 2 || immuneCount >= 1) {
             strengths.push(attackingType);
         }
     });
@@ -539,10 +541,20 @@ function renderCoverageBadges(types, tone) {
 function renderTeamCoveragePanel() {
     if (!teamCoveragePanel)
         return;
+    const teamMembers = currentTeam.filter((member) => Boolean(member));
     const analysis = analyzeCoverage(currentTeam);
-    const suggestionMarkup = analysis.biggestThreat && analysis.suggestedDefenseType
+    const hasMembers = teamMembers.length > 0;
+    const isSingleMemberTeam = teamMembers.length === 1;
+    const hasZeroCriticalWeaknesses = hasMembers && analysis.criticalWeaknesses.length === 0;
+    let suggestionMarkup = analysis.biggestThreat && analysis.suggestedDefenseType
         ? `Falta cobertura contra ${typeLabelMap[analysis.biggestThreat]}. Sugestão: adicione um Pokémon tipo ${typeLabelMap[analysis.suggestedDefenseType]} (${analysis.suggestedDefenseType}).`
         : 'Cobertura equilibrada no momento. Continue variando os tipos para manter o time sólido.';
+    if (isSingleMemberTeam) {
+        suggestionMarkup = 'Bom começo! Adicione mais membros para cobrir essas fraquezas.';
+    }
+    const successBannerMarkup = hasZeroCriticalWeaknesses
+        ? '<p class="coverage-success-banner">Parabéns! Seu time tem uma sinergia excelente e todas as fraquezas estão cobertas!</p>'
+        : '';
     teamCoveragePanel.innerHTML = `
     <article class="coverage-group">
       <h4>Avisos (Fraquezas Críticas)</h4>
@@ -559,6 +571,7 @@ function renderTeamCoveragePanel() {
     <article class="coverage-group coverage-group--suggestion">
       <h4>Sugestões de Cobertura</h4>
       <p>${suggestionMarkup}</p>
+      ${successBannerMarkup}
     </article>
   `;
     teamCoveragePanel.classList.remove('is-updating');
