@@ -194,6 +194,7 @@ function activateView(target) {
     views.forEach((view) => {
         const isActive = view.dataset.view === target;
         view.classList.toggle('active', isActive);
+        view.hidden = !isActive;
     });
 }
 function applyThemeByGame(game) {
@@ -462,6 +463,7 @@ function openTeamBuilder() {
     topHeader?.setAttribute('hidden', 'hidden');
     bottomNavWrap?.setAttribute('hidden', 'hidden');
     activateView('teambuilder');
+    teamBuilderView?.removeAttribute('hidden');
     setTeamSearchVisibility(false);
 }
 function closeTeamBuilder() {
@@ -952,6 +954,7 @@ async function openPokemonDetails(nationalId, pokemonName) {
     }
     activateView('details');
     triggerHapticFeedback();
+    detailsView.hidden = false;
     document.body.classList.add('details-open');
     appShell?.classList.add('details-open');
     topHeader?.setAttribute('hidden', 'true');
