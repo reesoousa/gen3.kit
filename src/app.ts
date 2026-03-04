@@ -300,6 +300,7 @@ function activateView(target: string): void {
   views.forEach((view) => {
     const isActive = view.dataset.view === target;
     view.classList.toggle('active', isActive);
+    view.hidden = !isActive;
   });
 }
 
@@ -629,6 +630,7 @@ function openTeamBuilder(): void {
   topHeader?.setAttribute('hidden', 'hidden');
   bottomNavWrap?.setAttribute('hidden', 'hidden');
   activateView('teambuilder');
+  teamBuilderView?.removeAttribute('hidden');
   setTeamSearchVisibility(false);
 }
 
@@ -1195,6 +1197,7 @@ async function openPokemonDetails(nationalId: number, pokemonName: string): Prom
 
   activateView('details');
   triggerHapticFeedback();
+  detailsView.hidden = false;
   document.body.classList.add('details-open');
   appShell?.classList.add('details-open');
   topHeader?.setAttribute('hidden', 'true');
