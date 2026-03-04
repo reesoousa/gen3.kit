@@ -116,7 +116,7 @@ body::after {
   top: var(--space-sm);
   z-index: 20;
   padding: var(--space-md) var(--space-lg);
-  margin-top: calc(env(safe-area-inset-top) + 2.5rem);
+  margin-top: calc(env(safe-area-inset-top) + 1.2rem);
   box-sizing: border-box;
   display: flex;
   justify-content: space-between;
@@ -125,7 +125,7 @@ body::after {
 }
 
 .brand-logo {
-  width: clamp(178px, 31vw, 248px);
+  width: clamp(144px, 25vw, 204px);
   height: auto;
   object-fit: contain;
   object-position: left center;
@@ -811,21 +811,36 @@ body.teambuilder-open .bottom-nav-wrap {
 }
 
 .teambuilder-back-button {
+  border: none;
+}
+
+.teambuilder-search {
+  position: relative;
+  z-index: 60;
+}
+
+.back-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
+  gap: 0.35rem;
+  width: fit-content;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--theme-color) 18%, rgba(13, 20, 35, 0.88));
+  border: 1px solid color-mix(in srgb, var(--theme-color) 42%, rgba(255, 255, 255, 0.25));
+  box-shadow: 0 10px 20px rgba(5, 9, 18, 0.32);
   color: var(--color-text-primary);
-  border-radius: 999px;
-  padding: 0;
-  min-width: 44px;
+  font-weight: 700;
+  line-height: 1;
   min-height: 44px;
 }
 
-.teambuilder-back-button svg {
+.back-button span {
+  font-size: 0.9rem;
+}
+
+.back-button svg {
   width: 1rem;
   height: 1rem;
   fill: none;
@@ -833,9 +848,8 @@ body.teambuilder-open .bottom-nav-wrap {
   stroke-width: 2;
 }
 
-.teambuilder-search {
-  position: relative;
-  z-index: 60;
+.teambuilder-search[hidden] {
+  display: none;
 }
 
 .teambuilder-search .control-field {
@@ -931,6 +945,11 @@ body.teambuilder-open .bottom-nav-wrap {
 }
 
 .team-add-member {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0.5rem 1rem;
   min-height: 52px;
   border-radius: var(--radius-md);
   border: 1px dashed color-mix(in srgb, var(--theme-color) 64%, rgba(255, 255, 255, 0.24));
@@ -956,6 +975,14 @@ body.teambuilder-open .bottom-nav-wrap {
   border: 1px solid rgba(255, 255, 255, 0.24);
   background: rgba(149, 44, 61, 0.3);
   color: #ffd7df;
+}
+
+.teambuilder-coverage {
+  display: none;
+}
+
+.teambuilder-coverage.visible {
+  display: block;
 }
 
 #team-coverage-panel {
@@ -1047,18 +1074,7 @@ body.teambuilder-open .bottom-nav-wrap {
 }
 
 .details-back-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
   border: none;
-  background: transparent;
-  box-shadow: none;
-  color: var(--color-text-primary);
-  border-radius: 999px;
-  padding: 0;
-  min-width: 44px;
-  min-height: 44px;
   transition: transform 0.1s ease, opacity 0.12s ease;
 }
 
@@ -1104,14 +1120,6 @@ body.teambuilder-open .bottom-nav-wrap {
 .details-moves-table-skeleton {
   display: grid;
   gap: 0.42rem;
-}
-
-.details-back-button svg {
-  width: 1rem;
-  height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
 }
 
 .details-hero {
