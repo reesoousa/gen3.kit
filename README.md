@@ -43,6 +43,11 @@ graph TD
     E -->|Aba 3| H[View: Evoluções]
     H --> H1(Busca de Espécie)
     H1 --> H2(Renderiza Evolution Chain)
+
+    E -->|Aba 4| I[View: HMs]
+    I --> I1(Toggles de HMs por Região)
+    I1 --> I2(Filtro de Compatibilidade)
+    D --> I2
     
     classDef highlight fill:#1e1e24,stroke:#50C878,stroke-width:2px,color:#fff;
     class B,D highlight;
