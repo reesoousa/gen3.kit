@@ -90,6 +90,7 @@
             <label class="control-field" for="dex-search">
               <span>Buscar por nome</span>
               <input id="dex-search" type="text" placeholder="Ex.: torchic" autocomplete="off" />
+              <ul class="autocomplete-list" id="dex-autocomplete-list" hidden></ul>
             </label>
 
             <label class="control-field" for="dex-type-filter">
@@ -133,13 +134,12 @@
               <input
                 id="evolution-search"
                 type="text"
-                list="evolution-suggestions"
                 placeholder="Ex.: torchic"
                 autocomplete="off"
                 required
               />
+              <ul class="autocomplete-list" id="evolution-autocomplete-list" hidden></ul>
             </label>
-            <datalist id="evolution-suggestions"></datalist>
             <button class="evolution-submit" type="submit">Buscar Evolução</button>
           </form>
 
