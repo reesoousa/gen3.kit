@@ -628,7 +628,6 @@ function openTeamBuilder(): void {
   bottomNavWrap?.setAttribute('hidden', 'hidden');
   activateView('teambuilder');
   teamBuilderView?.removeAttribute('hidden');
-  teamSearchInput?.focus();
 }
 
 function closeTeamBuilder(): void {
@@ -1429,7 +1428,6 @@ function bindEvents(): void {
       if (Number.isFinite(teamSlotIndex) && teamSlotIndex >= 0 && teamSlotIndex < currentTeam.length) {
         activeTeamSlotIndex = teamSlotIndex;
         renderTeamSlots();
-        teamSearchInput?.focus();
       }
       return;
     }
