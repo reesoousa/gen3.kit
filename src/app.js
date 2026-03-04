@@ -7,7 +7,8 @@ const dexGrid = document.querySelector('#dex-grid');
 const dexStatus = document.querySelector('#dex-status');
 const evolutionForm = document.querySelector('#evolution-form');
 const evolutionSearchInput = document.querySelector('#evolution-search');
-const evolutionSuggestions = document.querySelector('#evolution-suggestions');
+const dexAutocompleteList = document.querySelector('#dex-autocomplete-list');
+const evolutionAutocompleteList = document.querySelector('#evolution-autocomplete-list');
 const evolutionStatus = document.querySelector('#evolution-status');
 const evolutionChainContainer = document.querySelector('#evolution-chain');
 const hmsToggleList = document.querySelector('#hms-toggle-list');
@@ -308,7 +309,6 @@ async function loadDexForGame(game) {
         dexEntries = cachedEntries;
         dexLoadedGame = game;
         renderDexGrid();
-        hydrateEvolutionSuggestions();
         setDexStatus(`Dados carregados em cache: ${cachedEntries.length} Pokémon disponíveis.`);
         return;
     }
@@ -342,8 +342,7 @@ async function loadDexForGame(game) {
     dexCache.set(pokedexId, dexEntries);
     dexLoadedGame = game;
     renderDexGrid();
-    hydrateEvolutionSuggestions();
-    setDexStatus(`Pokédex carregada com sucesso: ${dexEntries.length} Pokémon disponíveis.`);
+      setDexStatus(`Pokédex carregada com sucesso: ${dexEntries.length} Pokémon disponíveis.`);
 }
 function createPokemonCard(entry, game) {
     const typeTags = entry.types
@@ -382,21 +381,50 @@ function renderDexGrid() {
     dexGrid.innerHTML = filtered.map((entry) => createPokemonCard(entry, game)).join('');
     setDexStatus(`${filtered.length} Pokémon exibidos.`);
 }
-function hydrateEvolutionSuggestions() {
-    if (!evolutionSuggestions)
+function getAutocompleteMatches(query) {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.length < 2)
+        return [];
+    return dexEntries
+        .filter((entry) => entry.name.includes(normalizedQuery))
+        .slice(0, 8);
+}
+function hideAutocompleteList(list) {
+    if (!list)
         return;
-    evolutionSuggestions.innerHTML = dexEntries
-        .map((entry) => `<option value="${entry.name}">${formatPokemonName(entry.name)}</option>`)
+    list.innerHTML = '';
+    list.hidden = true;
+}
+function renderAutocompleteList(list, matches, onSelect) {
+    if (!list)
+        return;
+    if (!matches.length) {
+        hideAutocompleteList(list);
+        return;
+    }
+    list.innerHTML = matches
+        .map((entry) => `<li class="autocomplete-item" data-pokemon-name="${entry.name}" role="option">${formatPokemonName(entry.name)}</li>`)
         .join('');
+    list.hidden = false;
+    list.querySelectorAll('li[data-pokemon-name]').forEach((item) => {
+        item.addEventListener('click', () => {
+            const pokemonName = item.dataset.pokemonName;
+            if (!pokemonName)
+                return;
+            onSelect(pokemonName);
+            hideAutocompleteList(list);
+        });
+    });
 }
 async function ensureDexForCurrentGame() {
     const game = getCurrentGame();
     if (dexLoadedGame === game && dexEntries.length > 0) {
         renderDexGrid();
-        hydrateEvolutionSuggestions();
         return;
     }
     await loadDexForGame(game);
+    hideAutocompleteList(dexAutocompleteList);
+    hideAutocompleteList(evolutionAutocompleteList);
 }
 function formatEvolutionMethod(detail) {
     const trigger = detail.trigger?.name;
@@ -505,11 +533,8 @@ async function fetchEvolutionPathsByPokemonName(pokemonName) {
     const chainData = await chainResponse.json();
     return collectEvolutionPaths(chainData.chain, { steps: [], methods: [] });
 }
-async function handleEvolutionSearchSubmit(event) {
-    event.preventDefault();
-    if (!evolutionSearchInput)
-        return;
-    const normalizedSearch = evolutionSearchInput.value.trim().toLowerCase();
+async function searchEvolutionByName(pokemonName) {
+    const normalizedSearch = pokemonName.trim().toLowerCase();
     if (!normalizedSearch) {
         setEvolutionStatus('Digite o nome de um Pokémon para pesquisar evoluções.');
         return;
@@ -532,6 +557,12 @@ async function handleEvolutionSearchSubmit(event) {
         setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
         renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
     }
+}
+async function handleEvolutionSearchSubmit(event) {
+    event.preventDefault();
+    if (!evolutionSearchInput)
+        return;
+    await searchEvolutionByName(evolutionSearchInput.value);
 }
 function getVersionGroupByGame(game) {
     if (game === 'firered' || game === 'leafgreen')
@@ -794,9 +825,25 @@ function bindEvents() {
     });
     dexSearchInput?.addEventListener('input', () => {
         renderDexGrid();
+        const matches = getAutocompleteMatches(dexSearchInput.value);
+        renderAutocompleteList(dexAutocompleteList, matches, (pokemonName) => {
+            if (!dexSearchInput)
+                return;
+            dexSearchInput.value = pokemonName;
+            renderDexGrid();
+        });
     });
     dexTypeSelect?.addEventListener('change', () => {
         renderDexGrid();
+    });
+    evolutionSearchInput?.addEventListener('input', () => {
+        const matches = getAutocompleteMatches(evolutionSearchInput.value);
+        renderAutocompleteList(evolutionAutocompleteList, matches, (pokemonName) => {
+            if (!evolutionSearchInput)
+                return;
+            evolutionSearchInput.value = pokemonName;
+            void searchEvolutionByName(pokemonName);
+        });
     });
     evolutionForm?.addEventListener('submit', (event) => {
         void handleEvolutionSearchSubmit(event);
@@ -807,6 +854,14 @@ function bindEvents() {
     });
     document.addEventListener('click', (event) => {
         const target = event.target;
+        const clickedDexAutocomplete = target.closest('#dex-autocomplete-list, #dex-search');
+        if (!clickedDexAutocomplete) {
+            hideAutocompleteList(dexAutocompleteList);
+        }
+        const clickedEvolutionAutocomplete = target.closest('#evolution-autocomplete-list, #evolution-search');
+        if (!clickedEvolutionAutocomplete) {
+            hideAutocompleteList(evolutionAutocompleteList);
+        }
         const retryButton = target.closest('[data-retry-action]');
         if (retryButton) {
             triggerHapticFeedback();
@@ -880,6 +935,7 @@ function bindEvents() {
                     evolutionChainContainer.innerHTML = '';
                 if (evolutionSearchInput)
                     evolutionSearchInput.value = '';
+                hideAutocompleteList(evolutionAutocompleteList);
             }
         }
         catch (error) {

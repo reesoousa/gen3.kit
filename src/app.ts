@@ -67,7 +67,8 @@ const dexStatus = document.querySelector<HTMLParagraphElement>('#dex-status');
 
 const evolutionForm = document.querySelector<HTMLFormElement>('#evolution-form');
 const evolutionSearchInput = document.querySelector<HTMLInputElement>('#evolution-search');
-const evolutionSuggestions = document.querySelector<HTMLDataListElement>('#evolution-suggestions');
+const dexAutocompleteList = document.querySelector<HTMLUListElement>('#dex-autocomplete-list');
+const evolutionAutocompleteList = document.querySelector<HTMLUListElement>('#evolution-autocomplete-list');
 const evolutionStatus = document.querySelector<HTMLParagraphElement>('#evolution-status');
 const evolutionChainContainer = document.querySelector<HTMLElement>('#evolution-chain');
 const hmsToggleList = document.querySelector<HTMLDivElement>('#hms-toggle-list');
@@ -425,7 +426,6 @@ async function loadDexForGame(game: GameKey): Promise<void> {
     dexEntries = cachedEntries;
     dexLoadedGame = game;
     renderDexGrid();
-    hydrateEvolutionSuggestions();
     setDexStatus(`Dados carregados em cache: ${cachedEntries.length} Pokémon disponíveis.`);
     return;
   }
@@ -466,7 +466,6 @@ async function loadDexForGame(game: GameKey): Promise<void> {
   dexCache.set(pokedexId, dexEntries);
   dexLoadedGame = game;
   renderDexGrid();
-  hydrateEvolutionSuggestions();
   setDexStatus(`Pokédex carregada com sucesso: ${dexEntries.length} Pokémon disponíveis.`);
 }
 
@@ -513,12 +512,46 @@ function renderDexGrid(): void {
   setDexStatus(`${filtered.length} Pokémon exibidos.`);
 }
 
-function hydrateEvolutionSuggestions(): void {
-  if (!evolutionSuggestions) return;
+function getAutocompleteMatches(query: string): PokemonEntry[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (normalizedQuery.length < 2) return [];
 
-  evolutionSuggestions.innerHTML = dexEntries
-    .map((entry) => `<option value="${entry.name}">${formatPokemonName(entry.name)}</option>`)
+  return dexEntries
+    .filter((entry) => entry.name.includes(normalizedQuery))
+    .slice(0, 8);
+}
+
+function hideAutocompleteList(list: HTMLUListElement | null): void {
+  if (!list) return;
+  list.innerHTML = '';
+  list.hidden = true;
+}
+
+function renderAutocompleteList(
+  list: HTMLUListElement | null,
+  matches: PokemonEntry[],
+  onSelect: (pokemonName: string) => void,
+): void {
+  if (!list) return;
+
+  if (!matches.length) {
+    hideAutocompleteList(list);
+    return;
+  }
+
+  list.innerHTML = matches
+    .map((entry) => `<li class="autocomplete-item" data-pokemon-name="${entry.name}" role="option">${formatPokemonName(entry.name)}</li>`)
     .join('');
+  list.hidden = false;
+
+  list.querySelectorAll<HTMLLIElement>('li[data-pokemon-name]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const pokemonName = item.dataset.pokemonName;
+      if (!pokemonName) return;
+      onSelect(pokemonName);
+      hideAutocompleteList(list);
+    });
+  });
 }
 
 async function ensureDexForCurrentGame(): Promise<void> {
@@ -526,11 +559,12 @@ async function ensureDexForCurrentGame(): Promise<void> {
 
   if (dexLoadedGame === game && dexEntries.length > 0) {
     renderDexGrid();
-    hydrateEvolutionSuggestions();
     return;
   }
 
   await loadDexForGame(game);
+  hideAutocompleteList(dexAutocompleteList);
+  hideAutocompleteList(evolutionAutocompleteList);
 }
 
 function formatEvolutionMethod(detail: EvolutionDetail): string {
@@ -663,12 +697,8 @@ async function fetchEvolutionPathsByPokemonName(pokemonName: string): Promise<Ev
   return collectEvolutionPaths(chainData.chain as EvolutionChainNode, { steps: [], methods: [] });
 }
 
-async function handleEvolutionSearchSubmit(event: SubmitEvent): Promise<void> {
-  event.preventDefault();
-
-  if (!evolutionSearchInput) return;
-
-  const normalizedSearch = evolutionSearchInput.value.trim().toLowerCase();
+async function searchEvolutionByName(pokemonName: string): Promise<void> {
+  const normalizedSearch = pokemonName.trim().toLowerCase();
   if (!normalizedSearch) {
     setEvolutionStatus('Digite o nome de um Pokémon para pesquisar evoluções.');
     return;
@@ -692,6 +722,12 @@ async function handleEvolutionSearchSubmit(event: SubmitEvent): Promise<void> {
     setEvolutionStatus('Falha na conexão com a Box. Tente novamente.');
     renderErrorState(evolutionChainContainer, 'Falha na conexão com a Box. Tente novamente.', 'retry-evolution');
   }
+}
+
+async function handleEvolutionSearchSubmit(event: SubmitEvent): Promise<void> {
+  event.preventDefault();
+  if (!evolutionSearchInput) return;
+  await searchEvolutionByName(evolutionSearchInput.value);
 }
 
 
@@ -985,10 +1021,26 @@ function bindEvents(): void {
 
   dexSearchInput?.addEventListener('input', () => {
     renderDexGrid();
+
+    const matches = getAutocompleteMatches(dexSearchInput.value);
+    renderAutocompleteList(dexAutocompleteList, matches, (pokemonName) => {
+      if (!dexSearchInput) return;
+      dexSearchInput.value = pokemonName;
+      renderDexGrid();
+    });
   });
 
   dexTypeSelect?.addEventListener('change', () => {
     renderDexGrid();
+  });
+
+  evolutionSearchInput?.addEventListener('input', () => {
+    const matches = getAutocompleteMatches(evolutionSearchInput.value);
+    renderAutocompleteList(evolutionAutocompleteList, matches, (pokemonName) => {
+      if (!evolutionSearchInput) return;
+      evolutionSearchInput.value = pokemonName;
+      void searchEvolutionByName(pokemonName);
+    });
   });
 
   evolutionForm?.addEventListener('submit', (event) => {
@@ -1004,6 +1056,16 @@ function bindEvents(): void {
 
   document.addEventListener('click', (event) => {
     const target = event.target as HTMLElement;
+
+    const clickedDexAutocomplete = target.closest('#dex-autocomplete-list, #dex-search');
+    if (!clickedDexAutocomplete) {
+      hideAutocompleteList(dexAutocompleteList);
+    }
+
+    const clickedEvolutionAutocomplete = target.closest('#evolution-autocomplete-list, #evolution-search');
+    if (!clickedEvolutionAutocomplete) {
+      hideAutocompleteList(evolutionAutocompleteList);
+    }
 
     const retryButton = target.closest<HTMLButtonElement>('[data-retry-action]');
     if (retryButton) {
@@ -1088,6 +1150,7 @@ function bindEvents(): void {
         setEvolutionStatus('Região atualizada. Pesquise um Pokémon para ver a cadeia de evolução.');
         if (evolutionChainContainer) evolutionChainContainer.innerHTML = '';
         if (evolutionSearchInput) evolutionSearchInput.value = '';
+        hideAutocompleteList(evolutionAutocompleteList);
       }
     } catch (error) {
       console.error(error);
