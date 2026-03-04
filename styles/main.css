@@ -766,7 +766,7 @@ body.teambuilder-open .bottom-nav-wrap {
   inset: 0;
   z-index: 95;
   overflow-y: auto;
-  padding: max(env(safe-area-inset-top), var(--space-md)) var(--space-md) calc(var(--space-xl) + var(--safe-bottom));
+  padding: 3.5rem var(--space-md) calc(var(--space-xl) + var(--safe-bottom));
   background: linear-gradient(165deg, rgba(6, 10, 19, 0.92), rgba(8, 12, 22, 0.98));
   align-content: start;
 }
@@ -781,10 +781,12 @@ body.teambuilder-open .bottom-nav-wrap {
 .teambuilder-header {
   position: sticky;
   top: 0;
-  z-index: 4;
+  z-index: 40;
+  min-height: 84px;
+  padding-top: 3.5rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: var(--space-sm);
 }
 
 .teambuilder-header h2 {
@@ -792,21 +794,21 @@ body.teambuilder-open .bottom-nav-wrap {
   font-weight: 800;
 }
 
-.teambuilder-close-button {
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--theme-color) 45%, rgba(255, 255, 255, 0.2));
-  background: rgba(11, 19, 33, 0.75);
-  color: var(--color-text-primary);
+.teambuilder-back-button {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--theme-color) 45%, rgba(255, 255, 255, 0.2));
+  background: rgba(11, 19, 33, 0.75);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-md);
   padding: 0.55rem 0.8rem;
   font-weight: 700;
+  min-width: 44px;
+  min-height: 44px;
 }
 
-.teambuilder-close-button svg {
+.teambuilder-back-button svg {
   width: 1rem;
   height: 1rem;
   fill: none;
@@ -814,44 +816,117 @@ body.teambuilder-open .bottom-nav-wrap {
   stroke-width: 2;
 }
 
+.teambuilder-search {
+  position: relative;
+  z-index: 60;
+}
+
+.teambuilder-search .control-field {
+  position: relative;
+}
+
+.teambuilder-search .autocomplete-list {
+  position: absolute;
+  z-index: 9999;
+}
+
 .team-slots-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.team-member-list {
+  display: grid;
   gap: var(--space-sm);
 }
 
-.team-slot {
-  min-height: 112px;
-  border-radius: var(--radius-md);
-  border: 1px dashed color-mix(in srgb, var(--theme-color) 55%, rgba(255, 255, 255, 0.24));
-  background: rgba(10, 18, 31, 0.55);
+.team-member-card {
+  --team-type-color: var(--type-normal);
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--team-type-color) 60%, rgba(255, 255, 255, 0.25));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--team-type-color) 26%, rgba(10, 18, 31, 0.9)), rgba(12, 20, 35, 0.9));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 0.7rem 0.8rem;
+  transition: transform 0.1s ease, opacity 0.12s ease, border-color 0.2s ease;
+}
+
+.team-member-card[data-primary-type='normal'] { --team-type-color: var(--type-normal); }
+.team-member-card[data-primary-type='fire'] { --team-type-color: var(--type-fire); }
+.team-member-card[data-primary-type='water'] { --team-type-color: var(--type-water); }
+.team-member-card[data-primary-type='grass'] { --team-type-color: var(--type-grass); }
+.team-member-card[data-primary-type='electric'] { --team-type-color: var(--type-electric); }
+.team-member-card[data-primary-type='ice'] { --team-type-color: var(--type-ice); }
+.team-member-card[data-primary-type='fighting'] { --team-type-color: var(--type-fighting); }
+.team-member-card[data-primary-type='poison'] { --team-type-color: var(--type-poison); }
+.team-member-card[data-primary-type='ground'] { --team-type-color: var(--type-ground); }
+.team-member-card[data-primary-type='flying'] { --team-type-color: var(--type-flying); }
+.team-member-card[data-primary-type='psychic'] { --team-type-color: var(--type-psychic); }
+.team-member-card[data-primary-type='bug'] { --team-type-color: var(--type-bug); }
+.team-member-card[data-primary-type='rock'] { --team-type-color: var(--type-rock); }
+.team-member-card[data-primary-type='ghost'] { --team-type-color: var(--type-ghost); }
+.team-member-card[data-primary-type='dragon'] { --team-type-color: var(--type-dragon); }
+.team-member-card[data-primary-type='dark'] { --team-type-color: var(--type-dark); }
+.team-member-card[data-primary-type='steel'] { --team-type-color: var(--type-steel); }
+
+.team-member-card.is-selected {
+  border-color: color-mix(in srgb, var(--team-type-color) 85%, #fff 15%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--team-type-color) 45%, transparent);
+}
+
+.team-member-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.team-member-sprite-slot {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  background: rgba(7, 12, 21, 0.4);
   display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 0.35rem;
-  text-align: center;
-  padding: 0.6rem;
-  transition: transform 0.1s ease, opacity 0.12s ease, border-color 0.5s ease;
+  place-items: center;
 }
 
-.team-slot.is-filled {
-  border-style: solid;
+.team-member-sprite {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
 }
 
-.team-slot.is-selected {
-  border-color: color-mix(in srgb, var(--theme-color) 78%, white 22%);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-color) 40%, transparent);
+.team-member-meta {
+  display: grid;
+  gap: 0.2rem;
 }
 
 .team-slot-title {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: var(--color-text-secondary);
   font-weight: 700;
 }
 
 .team-slot-name {
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.team-add-member {
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px dashed color-mix(in srgb, var(--theme-color) 64%, rgba(255, 255, 255, 0.24));
+  background: rgba(10, 18, 31, 0.6);
+  color: var(--color-text-primary);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.team-empty-state {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--space-md);
 }
 
 .team-member-remove {
@@ -862,23 +937,68 @@ body.teambuilder-open .bottom-nav-wrap {
   font-size: 0.72rem;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(149, 44, 61, 0.28);
+  background: rgba(149, 44, 61, 0.3);
   color: #ffd7df;
 }
 
-.team-coverage-list {
+#team-coverage-panel {
   display: grid;
+  gap: var(--space-sm);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 0.7;
+  transform: translateY(4px);
+}
+
+#team-coverage-panel.is-updating {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.coverage-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.coverage-group h4 {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.coverage-badge-list {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.45rem;
 }
 
-.coverage-warning {
-  color: #ff9f7a;
-  font-weight: 700;
+.coverage-badge {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: 1px solid transparent;
 }
 
-.coverage-strong {
-  color: #89e6b1;
-  font-weight: 700;
+.coverage-badge--warning {
+  color: #ffd9cd;
+  border-color: #ff8b6d;
+  background: rgba(220, 95, 63, 0.32);
+}
+
+.coverage-badge--strong {
+  color: #d0ffde;
+  border-color: #7fd1a1;
+  background: rgba(68, 169, 102, 0.3);
+}
+
+.coverage-empty {
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+}
+
+.coverage-group--suggestion p {
+  color: #cfe3ff;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 #view-details {
@@ -886,7 +1006,7 @@ body.teambuilder-open .bottom-nav-wrap {
   inset: 0;
   z-index: 100;
   overflow-y: auto;
-  padding: max(env(safe-area-inset-top), var(--space-md)) var(--space-md) calc(var(--space-xl) + var(--safe-bottom));
+  padding: 3.5rem var(--space-md) calc(var(--space-xl) + var(--safe-bottom));
   background: linear-gradient(165deg, rgba(6, 10, 19, 0.92), rgba(8, 12, 22, 0.98));
   align-content: start;
 }
@@ -894,8 +1014,9 @@ body.teambuilder-open .bottom-nav-wrap {
 .details-header {
   position: sticky;
   top: 0;
-  z-index: 4;
-  padding: 0.4rem;
+  z-index: 40;
+  min-height: 84px;
+  padding: 3.5rem 0.4rem 0.4rem;
 }
 
 .details-back-button {
@@ -922,7 +1043,7 @@ body.teambuilder-open .bottom-nav-wrap {
 .retry-action:active,
 .teambuilder-fab:active,
 .team-slot:active,
-.teambuilder-close-button:active,
+.teambuilder-back-button:active,
 .team-member-remove:active {
   transform: scale(0.96);
   opacity: 0.86;

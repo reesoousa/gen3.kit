@@ -27,7 +27,7 @@ const detailsEncounters = document.querySelector('#details-encounters');
 const detailsMoves = document.querySelector('#details-moves');
 const teamBuilderView = document.querySelector('#view-teambuilder');
 const openTeamBuilderButton = document.querySelector('#open-teambuilder-button');
-const closeTeamBuilderButton = document.querySelector('#teambuilder-close-button');
+const teamBuilderBackButton = document.querySelector('#teambuilder-back-button');
 const teamSearchInput = document.querySelector('#team-search');
 const teamAutocompleteList = document.querySelector('#team-autocomplete-list');
 const teamSlotsGrid = document.querySelector('#team-slots-grid');
@@ -476,11 +476,11 @@ function closeTeamBuilder() {
 function analyzeCoverage(teamArray) {
     const teamMembers = teamArray.filter((member) => Boolean(member));
     if (!teamMembers.length) {
-        return { criticalWeaknesses: [], fullImmunities: [], coveredResistances: [] };
+        return { criticalWeaknesses: [], strengths: [], suggestedDefenseType: null, biggestThreat: null };
     }
     const criticalWeaknesses = [];
-    const fullImmunities = [];
-    const coveredResistances = [];
+    const strengths = [];
+    const attackPressureByType = new Map();
     GEN3_TYPES.forEach((attackingType) => {
         let weakCount = 0;
         let resistCount = 0;
@@ -509,77 +509,119 @@ function analyzeCoverage(teamArray) {
                 resistCount += 1;
             }
         });
+        attackPressureByType.set(attackingType, weakCount * 2 - resistCount - immuneCount * 2);
         if (weakCount >= 2 && resistCount === 0 && immuneCount === 0) {
             criticalWeaknesses.push(attackingType);
         }
-        if (immuneCount === teamMembers.length) {
-            fullImmunities.push(attackingType);
-        }
         if (resistCount >= 2 || immuneCount >= 1) {
-            coveredResistances.push(attackingType);
+            strengths.push(attackingType);
         }
     });
-    return { criticalWeaknesses, fullImmunities, coveredResistances };
+    const biggestThreat = [...attackPressureByType.entries()]
+        .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    let suggestedDefenseType = null;
+    if (biggestThreat) {
+        suggestedDefenseType = GEN3_TYPES.find((candidateType) => {
+            const chart = GEN3_TYPE_CHART[candidateType];
+            return chart.resists.includes(biggestThreat) || chart.immuneTo.includes(biggestThreat);
+        }) ?? null;
+    }
+    return { criticalWeaknesses, strengths, suggestedDefenseType, biggestThreat };
+}
+function renderCoverageBadges(types, tone) {
+    if (!types.length)
+        return `<span class="coverage-empty">Sem tipos para destacar.</span>`;
+    return types
+        .map((type) => `
+      <span class="coverage-badge coverage-badge--${tone}" data-type="${type}">${typeLabelMap[type]}</span>
+    `)
+        .join('');
 }
 function renderTeamCoveragePanel() {
     if (!teamCoveragePanel)
         return;
     const analysis = analyzeCoverage(currentTeam);
-    const warningMarkup = analysis.criticalWeaknesses.length
-        ? analysis.criticalWeaknesses
-            .map((type) => `<li class="coverage-warning">Fraqueza Crítica: ${typeLabelMap[type]} (Sem resistências)</li>`)
-            .join('')
-        : '<li class="coverage-strong">Sem fraquezas críticas no momento.</li>';
-    const immunityMarkup = analysis.fullImmunities.length
-        ? analysis.fullImmunities
-            .map((type) => `<li class="coverage-strong">Imunidade Total: ${typeLabelMap[type]}</li>`)
-            .join('')
-        : '<li class="coverage-warning">Ainda não há imunidades completas no time.</li>';
-    const coveredMarkup = analysis.coveredResistances.length
-        ? analysis.coveredResistances
-            .map((type) => `<li class="coverage-strong">Ponto Forte: cobertura defensiva contra ${typeLabelMap[type]}</li>`)
-            .join('')
-        : '<li class="coverage-warning">Cobertura defensiva ainda limitada.</li>';
+    const suggestionMarkup = analysis.biggestThreat && analysis.suggestedDefenseType
+        ? `Falta cobertura contra ${typeLabelMap[analysis.biggestThreat]}. Sugestão: adicione um Pokémon tipo ${typeLabelMap[analysis.suggestedDefenseType]} (${analysis.suggestedDefenseType}).`
+        : 'Cobertura equilibrada no momento. Continue variando os tipos para manter o time sólido.';
     teamCoveragePanel.innerHTML = `
-    <ul class="team-coverage-list">
-      ${warningMarkup}
-      ${immunityMarkup}
-      ${coveredMarkup}
-    </ul>
+    <article class="coverage-group">
+      <h4>Avisos (Fraquezas Críticas)</h4>
+      <div class="coverage-badge-list">
+        ${analysis.criticalWeaknesses.length ? renderCoverageBadges(analysis.criticalWeaknesses, 'warning') : '<span class="coverage-empty">Sem fraquezas críticas no momento.</span>'}
+      </div>
+    </article>
+    <article class="coverage-group">
+      <h4>Forças (Resistências/Imunidades)</h4>
+      <div class="coverage-badge-list">
+        ${analysis.strengths.length ? renderCoverageBadges(analysis.strengths, 'strong') : '<span class="coverage-empty">Cobertura defensiva ainda limitada.</span>'}
+      </div>
+    </article>
+    <article class="coverage-group coverage-group--suggestion">
+      <h4>Sugestões de Cobertura</h4>
+      <p>${suggestionMarkup}</p>
+    </article>
   `;
+    teamCoveragePanel.classList.remove('is-updating');
+    window.requestAnimationFrame(() => {
+        teamCoveragePanel.classList.add('is-updating');
+    });
 }
 function renderTeamSlots() {
     if (!teamSlotsGrid)
         return;
-    teamSlotsGrid.innerHTML = currentTeam
-        .map((member, index) => {
-        if (!member) {
-            return `
-          <button class="team-slot ${activeTeamSlotIndex === index ? 'is-selected' : ''}" type="button" data-team-slot-index="${index}">
-            <span class="team-slot-title">Slot ${index + 1}</span>
-            <span class="team-slot-name">Vazio - toque para adicionar</span>
-          </button>
-        `;
-        }
+    const game = getCurrentGame();
+    const filledMembers = currentTeam
+        .map((member, index) => ({ member, index }))
+        .filter((item) => Boolean(item.member));
+    const memberCards = filledMembers.map(({ member, index }) => {
+        const primaryType = member.types[0]?.name ?? 'normal';
         return `
-        <button class="team-slot is-filled ${activeTeamSlotIndex === index ? 'is-selected' : ''}" type="button" data-team-slot-index="${index}">
-          <span class="team-slot-title">Slot ${index + 1}</span>
-          <span class="team-slot-name">${formatPokemonName(member.name)}</span>
-          <span class="type-chip-list">${member.types.map((type) => `<span class="type-chip" data-type="${type.name}">${typeLabelMap[type.name] ?? formatResourceName(type.name)}</span>`).join('')}</span>
-          <span class="team-member-remove" data-team-remove-index="${index}">Remover</span>
-        </button>
-      `;
-    })
-        .join('');
+      <article class="team-member-card ${activeTeamSlotIndex === index ? 'is-selected' : ''}" data-team-slot-index="${index}" data-primary-type="${primaryType}">
+        <div class="team-member-identity">
+          <div class="team-member-sprite-slot" aria-hidden="true">
+            <img class="team-member-sprite" src="${getSpriteUrl(game, member.nationalId)}" alt="Sprite de ${formatPokemonName(member.name)}" loading="lazy" />
+          </div>
+          <div class="team-member-meta">
+            <span class="team-slot-title">Membro ${index + 1}</span>
+            <span class="team-slot-name">${formatPokemonName(member.name)}</span>
+            <span class="type-chip-list">${member.types.map((type) => `<span class="type-chip" data-type="${type.name}">${typeLabelMap[type.name] ?? formatResourceName(type.name)}</span>`).join('')}</span>
+          </div>
+        </div>
+        <button class="team-member-remove" type="button" data-team-remove-index="${index}">Remover</button>
+      </article>
+    `;
+    }).join('');
+    const hasRoom = filledMembers.length < 6;
+    const addButtonMarkup = hasRoom
+        ? `<button class="team-add-member" type="button" data-team-slot-index="${activeTeamSlotIndex}">+ Adicionar Membro ao Time</button>`
+        : '';
+    teamSlotsGrid.innerHTML = `
+    <div class="team-member-list">${memberCards || '<p class="team-empty-state">Seu time está vazio. Comece adicionando o primeiro membro.</p>'}</div>
+    ${addButtonMarkup}
+  `;
     renderTeamCoveragePanel();
 }
 function addPokemonToTeam(pokemonName) {
     const targetPokemon = dexEntries.find((entry) => entry.name === pokemonName);
     if (!targetPokemon)
         return;
-    currentTeam[activeTeamSlotIndex] = targetPokemon;
+    const firstEmptyIndex = currentTeam.findIndex((member) => member === null);
+    const targetIndex = currentTeam[activeTeamSlotIndex] === null
+        ? activeTeamSlotIndex
+        : firstEmptyIndex >= 0
+            ? firstEmptyIndex
+            : activeTeamSlotIndex;
+    currentTeam[targetIndex] = targetPokemon;
+    if (targetIndex < 5) {
+        const nextEmptyIndex = currentTeam.findIndex((member, index) => member === null && index > targetIndex);
+        if (nextEmptyIndex >= 0) {
+            activeTeamSlotIndex = nextEmptyIndex;
+        }
+    }
     renderTeamSlots();
 }
+
 async function ensureDexForCurrentGame() {
     const game = getCurrentGame();
     if (dexLoadedGame === game && dexEntries.length > 0) {
@@ -1027,7 +1069,7 @@ function bindEvents() {
             setDexStatus('Falha na conexão com a Box. Tente novamente.');
         }
     });
-    closeTeamBuilderButton?.addEventListener('click', () => {
+    teamBuilderBackButton?.addEventListener('click', () => {
         triggerHapticFeedback();
         closeTeamBuilder();
     });
