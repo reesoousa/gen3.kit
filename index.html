@@ -201,34 +201,69 @@
             <div class="details-moves" id="details-moves"></div>
           </article>
         </section>
+
+        <section class="view" id="view-teambuilder" data-view="teambuilder" hidden>
+          <header class="teambuilder-header glass-panel">
+            <h2>Team Building</h2>
+            <button id="teambuilder-close-button" class="teambuilder-close-button" type="button" aria-label="Fechar Team Builder">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+              <span>Fechar</span>
+            </button>
+          </header>
+
+          <section class="teambuilder-search glass-panel" aria-label="Busca para montar time">
+            <label class="control-field" for="team-search">
+              <span>Adicionar Pokémon ao slot selecionado</span>
+              <input id="team-search" type="text" placeholder="Ex.: salamence" autocomplete="off" />
+              <ul class="autocomplete-list" id="team-autocomplete-list" hidden></ul>
+            </label>
+          </section>
+
+          <section class="teambuilder-slots glass-panel" aria-label="Slots de time">
+            <div class="team-slots-grid" id="team-slots-grid"></div>
+          </section>
+
+          <section class="teambuilder-coverage glass-panel" aria-live="polite">
+            <h3>Painel de Coverage</h3>
+            <div id="team-coverage-panel"></div>
+          </section>
+        </section>
       </main>
     </div>
 
     <div class="bottom-nav-wrap">
-      <nav class="bottom-nav glass-panel" aria-label="Navegação principal">
-        <button class="nav-item active" type="button" data-target="tipos" aria-current="page">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <span>Tipos</span>
-        </button>
-        <button class="nav-item" type="button" data-target="dex">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 4h12a2 2 0 0 1 2 2v12H4V6a2 2 0 0 1 2-2zm0 6h14" />
-          </svg>
-          <span>Dex</span>
-        </button>
-        <button class="nav-item" type="button" data-target="evolucoes">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 17l5-10 5 10M9 13h6" />
-          </svg>
-          <span>Evoluções</span>
-        </button>
-        <button class="nav-item" type="button" data-target="hms">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 8l8-4 8 4-8 4-8-4zm0 8l8 4 8-4M4 12l8 4 8-4" />
-          </svg>
-          <span>HMs</span>
+      <nav class="bottom-nav" aria-label="Navegação principal">
+        <div class="bottom-nav-pill glass-panel">
+          <button class="nav-item active" type="button" data-target="tipos" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span>Tipos</span>
+          </button>
+          <button class="nav-item" type="button" data-target="dex">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 4h12a2 2 0 0 1 2 2v12H4V6a2 2 0 0 1 2-2zm0 6h14" />
+            </svg>
+            <span>Dex</span>
+          </button>
+          <button class="nav-item" type="button" data-target="evolucoes">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 17l5-10 5 10M9 13h6" />
+            </svg>
+            <span>Evoluções</span>
+          </button>
+          <button class="nav-item" type="button" data-target="hms">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 8l8-4 8 4-8 4-8-4zm0 8l8 4 8-4M4 12l8 4 8-4" />
+            </svg>
+            <span>HMs</span>
+          </button>
+        </div>
+
+        <button class="teambuilder-fab glass-panel" id="open-teambuilder-button" type="button" aria-label="Abrir Team Builder">
+          <img src="./assets/favicon.png" alt="Team Builder" />
         </button>
       </nav>
     </div>

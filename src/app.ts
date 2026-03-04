@@ -55,6 +55,30 @@ type PokemonMove = {
 };
 
 type HMName = 'cut' | 'fly' | 'surf' | 'strength' | 'flash' | 'rock-smash' | 'waterfall' | 'dive';
+type Gen3TypeName =
+  | 'normal'
+  | 'fire'
+  | 'water'
+  | 'grass'
+  | 'electric'
+  | 'ice'
+  | 'fighting'
+  | 'poison'
+  | 'ground'
+  | 'flying'
+  | 'psychic'
+  | 'bug'
+  | 'rock'
+  | 'ghost'
+  | 'dragon'
+  | 'dark'
+  | 'steel';
+
+type TeamCoverageResult = {
+  criticalWeaknesses: Gen3TypeName[];
+  fullImmunities: Gen3TypeName[];
+  coveredResistances: Gen3TypeName[];
+};
 
 const navItems = Array.from(document.querySelectorAll<HTMLButtonElement>('.nav-item'));
 const views = Array.from(document.querySelectorAll<HTMLElement>('.view'));
@@ -86,6 +110,13 @@ const detailsStats = document.querySelector<HTMLElement>('#details-stats');
 const detailsStrategy = document.querySelector<HTMLParagraphElement>('#details-strategy');
 const detailsEncounters = document.querySelector<HTMLUListElement>('#details-encounters');
 const detailsMoves = document.querySelector<HTMLElement>('#details-moves');
+const teamBuilderView = document.querySelector<HTMLElement>('#view-teambuilder');
+const openTeamBuilderButton = document.querySelector<HTMLButtonElement>('#open-teambuilder-button');
+const closeTeamBuilderButton = document.querySelector<HTMLButtonElement>('#teambuilder-close-button');
+const teamSearchInput = document.querySelector<HTMLInputElement>('#team-search');
+const teamAutocompleteList = document.querySelector<HTMLUListElement>('#team-autocomplete-list');
+const teamSlotsGrid = document.querySelector<HTMLDivElement>('#team-slots-grid');
+const teamCoveragePanel = document.querySelector<HTMLDivElement>('#team-coverage-panel');
 
 const themeMap: Record<GameKey, string> = {
   emerald: '#50C878',
@@ -154,6 +185,31 @@ const hmLabelMap: Record<HMName, string> = {
   dive: 'Dive',
 };
 
+const GEN3_TYPES: Gen3TypeName[] = [
+  'normal', 'fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground',
+  'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel',
+];
+
+const GEN3_TYPE_CHART: Record<Gen3TypeName, { weakTo: Gen3TypeName[]; resists: Gen3TypeName[]; immuneTo: Gen3TypeName[] }> = {
+  normal: { weakTo: ['fighting'], resists: [], immuneTo: ['ghost'] },
+  fire: { weakTo: ['water', 'ground', 'rock'], resists: ['fire', 'grass', 'ice', 'bug', 'steel'], immuneTo: [] },
+  water: { weakTo: ['electric', 'grass'], resists: ['fire', 'water', 'ice', 'steel'], immuneTo: [] },
+  grass: { weakTo: ['fire', 'ice', 'poison', 'flying', 'bug'], resists: ['water', 'grass', 'electric', 'ground'], immuneTo: [] },
+  electric: { weakTo: ['ground'], resists: ['electric', 'flying', 'steel'], immuneTo: [] },
+  ice: { weakTo: ['fire', 'fighting', 'rock', 'steel'], resists: ['ice'], immuneTo: [] },
+  fighting: { weakTo: ['flying', 'psychic'], resists: ['bug', 'rock', 'dark'], immuneTo: [] },
+  poison: { weakTo: ['ground', 'psychic'], resists: ['grass', 'fighting', 'poison', 'bug'], immuneTo: [] },
+  ground: { weakTo: ['water', 'grass', 'ice'], resists: ['poison', 'rock'], immuneTo: ['electric'] },
+  flying: { weakTo: ['electric', 'ice', 'rock'], resists: ['grass', 'fighting', 'bug'], immuneTo: ['ground'] },
+  psychic: { weakTo: ['bug', 'ghost', 'dark'], resists: ['fighting', 'psychic'], immuneTo: [] },
+  bug: { weakTo: ['fire', 'flying', 'rock'], resists: ['grass', 'fighting', 'ground'], immuneTo: [] },
+  rock: { weakTo: ['water', 'grass', 'fighting', 'ground', 'steel'], resists: ['normal', 'fire', 'poison', 'flying'], immuneTo: [] },
+  ghost: { weakTo: ['ghost', 'dark'], resists: ['poison', 'bug'], immuneTo: ['normal', 'fighting'] },
+  dragon: { weakTo: ['ice', 'dragon'], resists: ['fire', 'water', 'grass', 'electric'], immuneTo: [] },
+  dark: { weakTo: ['fighting', 'bug'], resists: ['ghost', 'dark'], immuneTo: ['psychic'] },
+  steel: { weakTo: ['fire', 'fighting', 'ground'], resists: ['normal', 'grass', 'ice', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel'], immuneTo: ['poison'] },
+};
+
 let dexEntries: PokemonEntry[] = [];
 let dexLoadedGame: GameKey | null = null;
 const dexCache = new Map<number, PokemonEntry[]>();
@@ -163,6 +219,8 @@ let currentDetailNationalId: number | null = null;
 let currentDetailPokemonName = '';
 let selectedHMs = new Set<HMName>();
 const hmLearnsetCache = new Map<string, Set<HMName>>();
+let currentTeam: Array<PokemonEntry | null> = Array.from({ length: 6 }, () => null);
+let activeTeamSlotIndex = 0;
 
 function triggerHapticFeedback(duration = 50): void {
   try {
@@ -552,6 +610,142 @@ function renderAutocompleteList(
       hideAutocompleteList(list);
     });
   });
+}
+
+function openTeamBuilder(): void {
+  document.body.classList.add('teambuilder-open');
+  appShell?.classList.add('teambuilder-open');
+  topHeader?.setAttribute('hidden', 'hidden');
+  bottomNavWrap?.setAttribute('hidden', 'hidden');
+  activateView('teambuilder');
+  teamBuilderView?.removeAttribute('hidden');
+  teamSearchInput?.focus();
+}
+
+function closeTeamBuilder(): void {
+  document.body.classList.remove('teambuilder-open');
+  appShell?.classList.remove('teambuilder-open');
+  topHeader?.removeAttribute('hidden');
+  bottomNavWrap?.removeAttribute('hidden');
+  hideAutocompleteList(teamAutocompleteList);
+  if (teamSearchInput) teamSearchInput.value = '';
+  activateView(previousViewTarget);
+}
+
+function analyzeCoverage(teamArray: Array<PokemonEntry | null>): TeamCoverageResult {
+  const teamMembers = teamArray.filter((member): member is PokemonEntry => Boolean(member));
+  if (!teamMembers.length) {
+    return { criticalWeaknesses: [], fullImmunities: [], coveredResistances: [] };
+  }
+
+  const criticalWeaknesses: Gen3TypeName[] = [];
+  const fullImmunities: Gen3TypeName[] = [];
+  const coveredResistances: Gen3TypeName[] = [];
+
+  GEN3_TYPES.forEach((attackingType) => {
+    let weakCount = 0;
+    let resistCount = 0;
+    let immuneCount = 0;
+
+    teamMembers.forEach((member) => {
+      let effectiveness = 1;
+
+      member.types.forEach((memberType) => {
+        const typeName = memberType.name as Gen3TypeName;
+        const chart = GEN3_TYPE_CHART[typeName];
+        if (!chart) return;
+        if (chart.immuneTo.includes(attackingType)) effectiveness *= 0;
+        else if (chart.weakTo.includes(attackingType)) effectiveness *= 2;
+        else if (chart.resists.includes(attackingType)) effectiveness *= 0.5;
+      });
+
+      if (effectiveness === 0) {
+        immuneCount += 1;
+      } else if (effectiveness > 1) {
+        weakCount += 1;
+      } else if (effectiveness < 1) {
+        resistCount += 1;
+      }
+    });
+
+    if (weakCount >= 2 && resistCount === 0 && immuneCount === 0) {
+      criticalWeaknesses.push(attackingType);
+    }
+    if (immuneCount === teamMembers.length) {
+      fullImmunities.push(attackingType);
+    }
+    if (resistCount >= 2 || immuneCount >= 1) {
+      coveredResistances.push(attackingType);
+    }
+  });
+
+  return { criticalWeaknesses, fullImmunities, coveredResistances };
+}
+
+function renderTeamCoveragePanel(): void {
+  if (!teamCoveragePanel) return;
+
+  const analysis = analyzeCoverage(currentTeam);
+  const warningMarkup = analysis.criticalWeaknesses.length
+    ? analysis.criticalWeaknesses
+      .map((type) => `<li class="coverage-warning">Fraqueza Crítica: ${typeLabelMap[type]} (Sem resistências)</li>`)
+      .join('')
+    : '<li class="coverage-strong">Sem fraquezas críticas no momento.</li>';
+
+  const immunityMarkup = analysis.fullImmunities.length
+    ? analysis.fullImmunities
+      .map((type) => `<li class="coverage-strong">Imunidade Total: ${typeLabelMap[type]}</li>`)
+      .join('')
+    : '<li class="coverage-warning">Ainda não há imunidades completas no time.</li>';
+
+  const coveredMarkup = analysis.coveredResistances.length
+    ? analysis.coveredResistances
+      .map((type) => `<li class="coverage-strong">Ponto Forte: cobertura defensiva contra ${typeLabelMap[type]}</li>`)
+      .join('')
+    : '<li class="coverage-warning">Cobertura defensiva ainda limitada.</li>';
+
+  teamCoveragePanel.innerHTML = `
+    <ul class="team-coverage-list">
+      ${warningMarkup}
+      ${immunityMarkup}
+      ${coveredMarkup}
+    </ul>
+  `;
+}
+
+function renderTeamSlots(): void {
+  if (!teamSlotsGrid) return;
+
+  teamSlotsGrid.innerHTML = currentTeam
+    .map((member, index) => {
+      if (!member) {
+        return `
+          <button class="team-slot ${activeTeamSlotIndex === index ? 'is-selected' : ''}" type="button" data-team-slot-index="${index}">
+            <span class="team-slot-title">Slot ${index + 1}</span>
+            <span class="team-slot-name">Vazio - toque para adicionar</span>
+          </button>
+        `;
+      }
+
+      return `
+        <button class="team-slot is-filled ${activeTeamSlotIndex === index ? 'is-selected' : ''}" type="button" data-team-slot-index="${index}">
+          <span class="team-slot-title">Slot ${index + 1}</span>
+          <span class="team-slot-name">${formatPokemonName(member.name)}</span>
+          <span class="type-chip-list">${member.types.map((type) => `<span class="type-chip" data-type="${type.name}">${typeLabelMap[type.name] ?? formatResourceName(type.name)}</span>`).join('')}</span>
+          <span class="team-member-remove" data-team-remove-index="${index}">Remover</span>
+        </button>
+      `;
+    })
+    .join('');
+
+  renderTeamCoveragePanel();
+}
+
+function addPokemonToTeam(pokemonName: string): void {
+  const targetPokemon = dexEntries.find((entry) => entry.name === pokemonName);
+  if (!targetPokemon) return;
+  currentTeam[activeTeamSlotIndex] = targetPokemon;
+  renderTeamSlots();
 }
 
 async function ensureDexForCurrentGame(): Promise<void> {
@@ -1047,6 +1241,33 @@ function bindEvents(): void {
     void handleEvolutionSearchSubmit(event as SubmitEvent);
   });
 
+  openTeamBuilderButton?.addEventListener('click', async () => {
+    triggerHapticFeedback();
+    try {
+      await ensureDexForCurrentGame();
+      renderTeamSlots();
+      openTeamBuilder();
+    } catch (error) {
+      console.error(error);
+      setDexStatus('Falha na conexão com a Box. Tente novamente.');
+    }
+  });
+
+  closeTeamBuilderButton?.addEventListener('click', () => {
+    triggerHapticFeedback();
+    closeTeamBuilder();
+  });
+
+  teamSearchInput?.addEventListener('input', () => {
+    const matches = getAutocompleteMatches(teamSearchInput.value);
+    renderAutocompleteList(teamAutocompleteList, matches, (pokemonName) => {
+      if (!teamSearchInput) return;
+      teamSearchInput.value = '';
+      addPokemonToTeam(pokemonName);
+      hideAutocompleteList(teamAutocompleteList);
+    });
+  });
+
 
 
   detailsBackButton?.addEventListener('click', () => {
@@ -1065,6 +1286,11 @@ function bindEvents(): void {
     const clickedEvolutionAutocomplete = target.closest('#evolution-autocomplete-list, #evolution-search');
     if (!clickedEvolutionAutocomplete) {
       hideAutocompleteList(evolutionAutocompleteList);
+    }
+
+    const clickedTeamAutocomplete = target.closest('#team-autocomplete-list, #team-search');
+    if (!clickedTeamAutocomplete) {
+      hideAutocompleteList(teamAutocompleteList);
     }
 
     const retryButton = target.closest<HTMLButtonElement>('[data-retry-action]');
@@ -1117,6 +1343,30 @@ function bindEvents(): void {
         setHMStatus('Falha na conexão com a Box. Tente novamente.');
         renderErrorState(hmsGrid, 'Falha na conexão com a Box. Tente novamente.', 'retry-hms');
       });
+      return;
+    }
+
+    const removeButton = target.closest<HTMLElement>('[data-team-remove-index]');
+    if (removeButton) {
+      triggerHapticFeedback();
+      const removeIndex = Number(removeButton.dataset.teamRemoveIndex);
+      if (Number.isFinite(removeIndex) && removeIndex >= 0 && removeIndex < currentTeam.length) {
+        currentTeam[removeIndex] = null;
+        activeTeamSlotIndex = removeIndex;
+        renderTeamSlots();
+      }
+      return;
+    }
+
+    const teamSlot = target.closest<HTMLElement>('[data-team-slot-index]');
+    if (teamSlot) {
+      triggerHapticFeedback();
+      const teamSlotIndex = Number(teamSlot.dataset.teamSlotIndex);
+      if (Number.isFinite(teamSlotIndex) && teamSlotIndex >= 0 && teamSlotIndex < currentTeam.length) {
+        activeTeamSlotIndex = teamSlotIndex;
+        renderTeamSlots();
+        teamSearchInput?.focus();
+      }
       return;
     }
 
